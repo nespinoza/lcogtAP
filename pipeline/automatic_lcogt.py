@@ -203,10 +203,12 @@ def get_general_coords(target):
 # Get user input:
 parserIO = argparse.ArgumentParser()
 parserIO.add_argument('-project',default=None)
+parserIO.add_argument('-ndays',default=7)
 args = parserIO.parse_args()
 
 # Get the project name (see the userdata.dat file):
 project = args.project
+ndays = int(args.ndays)
 
 # Check for which project the user whishes to download data from:
 fprojects = open('../userdata.dat','r')
@@ -247,9 +249,9 @@ for i in range(len(dates_raw)):
     s = str(year)+'.'+str(month)+'.'+str(day)
     dt = parser.parse(s)
     data_jd = sum(jdcal.gcal2jd(dt.year, dt.month, dt.day))
-    # Only check data one week appart (maximum LCOGT takes to process data is ~couple of days, but one week
-    # is the limit just to be sure):
-    if data_jd > today_jd-7.:
+    # Default code only checks data one week appart (maximum LCOGT takes to process data is  
+    # ~couple of days, but one week is the limit just to be sure):
+    if data_jd > today_jd-ndays:
         # Get already reduced targets (if any):
         bf = glob.glob(data_folder+'LCOGT/red/'+dates_raw[i]+'/*')
         before_target_folders = []

@@ -44,7 +44,7 @@ on having internet connection:
 
 2. From terminal, go to the pipeline folder (`cd pipeline`) and run:
 
-       python automatic_lcogt.py -project NAMEOFTHEPROJECT
+       python automatic_lcogt.py -project NAMEOFTHEPROJECT -ndays numbers
 
    Where `NAMEOFTHEPROJECT` corresponds to the project in the userdata.dat file 
    that you filled in in step 1. This will run the pipeline and save the products 
@@ -53,8 +53,8 @@ on having internet connection:
    The pipeline will generate photometry for all the datasets in the folder for which no 
    photometry is yet available that have dates (which is measured from the folder name, 
    i.e., if the dataset is in `/data/keyproject/bright_stars/LCOGT/red/20170320` it assumes 
-   the dataset is from 2017/03/20) whithin one week from today (measured from your computer's 
-   date).
+   the dataset is from 2017/03/20) whithin `numbers` days from today (measured from your 
+   computer's date; if the `-ndays` input is not given, it is assumed this is 7).
 
 If you are interested in what the pipeline does, read the next section. If you don't care, 
 move to the "Products" section.
