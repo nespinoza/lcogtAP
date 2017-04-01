@@ -1,4 +1,8 @@
 # Project name		Data folder
+kpBRIGHTSTARS           /data/keyproject/bright_stars/
+kpCANDIDATES            /data/keyproject/candidates/
+kpWARMJUPITERS          /data/keyproject/warm_jupiters/  
+kpTTVS                  /data/keyproject/ttvs/
 ACCESS                  /data/ACCESS/
 HATSOUTH                /data/hatsouth/data/
 K2                      /data/K2Photometry/lcogt/
