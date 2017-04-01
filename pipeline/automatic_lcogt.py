@@ -374,7 +374,7 @@ for i in range(len(dates_raw)):
                     mymail.addattach([out_folder+'/'+target_name+'.pdf'])
                     mymail.addattach([out_folder+'/LC/'+target_name+'.epdlc'])
                     mymail.send()
-                  shutil.move(out_folder[:-3]+'_opt',data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/sinistro')
+                    shutil.move(out_folder[:-3]+'_opt',data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/sinistro')
                 else:
                     mymail = Bimail('LCOGT DR: '+target_name+' on ' +datetime.now().strftime('%Y/%m/%d'), emails_to_send)
                     mymail.htmladd('Post-processing failed for object '+target+' on '+dates_raw[i])
