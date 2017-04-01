@@ -258,7 +258,7 @@ for i in range(len(dates_raw)):
                 before_target_folders.append(tar_dir)
         # Reduce the data (if already reduced, nothing will happen):
         print 'Reducing data for '+dates_raw[i]+' night. Reducing...'
-        os.system('python get_photometry_lcogt.py -project HATSOUTH -datafolder '+dates_raw[i]) 
+        os.system('python get_photometry_lcogt.py -project '+project+' -datafolder '+dates_raw[i]) 
         # Now, assuming it is done, run the post-processing. First, switch to the post-processing folder:
         cwd = os.getcwd()
         os.chdir('../post_processing')
@@ -289,8 +289,12 @@ for i in range(len(dates_raw)):
                     print '\t Found RA and DEC:',RA,DEC
                     targetok = True
                 except:
-                    print '\t RA and DEC obtention failed!'
-                    targetok = False
+                    RA,DEC = get_general_coords(target_name)
+                    if RA == 'NoneFound':
+                        targetok = False
+                        print '\t RA and DEC obtention failed!'
+                    else:
+                        targetok = True
             else:
                 if 'Inter-American' in target:
                     splitted_name = target.split('-')
@@ -324,27 +328,19 @@ for i in range(len(dates_raw)):
                 p.wait()
                 out, err = p.communicate()
                 if ap == 'opt':
-                    code = 'python transit_photometry.py -project HATSOUTH -datafolder '+\
+                    code = 'python transit_photometry.py -project '+project+' -datafolder '+\
                            dates_raw[i]+' -target_name '+target_name+' -band '+band+\
                            ' -dome '+dome+' -ra "'+RA+'" -dec " '+DEC+'" -ncomp 10 --plt_images --autosaveLC'
                 else:
-                    code = 'python transit_photometry.py -project HATSOUTH -datafolder '+\
+                    code = 'python transit_photometry.py -project '+project+' -datafolder '+\
                            dates_raw[i]+' -target_name '+target_name+' -band '+band+\
                            ' -dome '+dome+' -ra "'+RA+'" -dec " '+DEC+'" -ncomp 10 --plt_images --force_aperture -forced_aperture '+ap+' --autosaveLC'
                 print code
                 p = subprocess.Popen(code,stdout = subprocess.PIPE, \
                            stderr = subprocess.PIPE,shell = True)
                 p.wait()
-                if sendemail:
-                    if(p.returncode != 0 and p.returncode != None):
-                        print 'Error sending mail:'
-                        out, err = p.communicate()
-                        print spaced(err,"\t \t")
-                    print 'Sending e-mail...' 
-                    mymail = Bimail('LCOGT DR: '+target_name+' on ' +dates_raw[i]+' Aperture: '+ap, emails_to_send)
-                    mymail.htmladd('Data reduction was a SUCCESS! Attached is the lightcurve data.')
-                    out = glob.glob(data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/*')
-                    for ii in range(len(out)):
+                out = glob.glob(data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/*')
+                for ii in range(len(out)):
                        if out[ii].split('/')[-1] == 'sinistro':
                            out_folder = out[ii]
                            camera = 'sinistro'
@@ -353,7 +349,15 @@ for i in range(len(dates_raw)):
                            out_folder = out[ii]
                            camera = 'SBIG'
                            break
-                    shutil.move(out_folder,out_folder+'_'+ap)
+                shutil.move(out_folder,out_folder+'_'+ap)
+                if sendemail:
+                    if(p.returncode != 0 and p.returncode != None):
+                        print 'Error sending mail:'
+                        out, err = p.communicate()
+                        print spaced(err,"\t \t")
+                    print 'Sending e-mail...' 
+                    mymail = Bimail('LCOGT DR: '+target_name+' on ' +dates_raw[i]+' Aperture: '+ap, emails_to_send)
+                    mymail.htmladd('Data reduction was a SUCCESS! Attached is the lightcurve data.')
                     out_folder = out_folder+'_'+ap
                     real_camera = 'sinistro' # from now on, all LCOGT data comes from sinistro cameras
                     imgs = glob.glob(out_folder+'/target/*')
@@ -376,9 +380,9 @@ for i in range(len(dates_raw)):
                     mymail.addattach([out_folder+'/LC/'+target_name+'.epdlc'])
                     mymail.send()
                     shutil.move(out_folder[:-3]+'_opt',data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/sinistro')
-                else:
-                    mymail = Bimail('LCOGT DR: '+target_name+' on ' +datetime.now().strftime('%Y/%m/%d'), emails_to_send)
-                    mymail.htmladd('Post-processing failed for object '+target+' on '+dates_raw[i])
-                    mymail.send()
+            else:
+                mymail = Bimail('LCOGT DR: '+target_name+' on ' +datetime.now().strftime('%Y/%m/%d'), emails_to_send)
+                mymail.htmladd('Post-processing failed for object '+target+' on '+dates_raw[i])
+                mymail.send()
         # Get back to photometric pipeline directory:
         os.chdir(cwd) 
