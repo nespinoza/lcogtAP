@@ -227,7 +227,7 @@ while True:
 
 data_folder = cf
 sendemail = False
-emails_to_send = ['your.email@gmail.com']
+emails_to_send = ['your@email.com']
 
 folders_raw = glob.glob(data_folder+'LCOGT/raw/*')
 dates_raw = len(folders_raw)*[[]]
@@ -358,7 +358,7 @@ for i in range(len(dates_raw)):
                         out, err = p.communicate()
                         print spaced(err,"\t \t")
                     print 'Sending e-mail...' 
-                    mymail = Bimail('LCOGT DR: '+target_name+' on ' +dates_raw[i]+' Aperture: '+ap, emails_to_send)
+                    mymail = Bimail('LCOGT DR (project: '+project+'): '+target_name+' on ' +dates_raw[i]+' Aperture: '+ap, emails_to_send)
                     mymail.htmladd('Data reduction was a SUCCESS! Attached is the lightcurve data.')
                     out_folder = out_folder+'_'+ap
                     real_camera = 'sinistro' # from now on, all LCOGT data comes from sinistro cameras
@@ -381,9 +381,9 @@ for i in range(len(dates_raw)):
                     mymail.addattach([out_folder+'/'+target_name+'.pdf'])
                     mymail.addattach([out_folder+'/LC/'+target_name+'.epdlc'])
                     mymail.send()
-                    shutil.move(out_folder[:-3]+'_opt',data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/sinistro')
+              shutil.move(out_folder[:-3]+'_opt',data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/sinistro')
             else:
-                mymail = Bimail('LCOGT DR: '+target_name+' on ' +datetime.now().strftime('%Y/%m/%d'), emails_to_send)
+                mymail = Bimail('LCOGT DR (project: '+project+'): '+target_name+' on ' +datetime.now().strftime('%Y/%m/%d'), emails_to_send)
                 mymail.htmladd('Post-processing failed for object '+target+' on '+dates_raw[i])
                 mymail.send()
         # Get back to photometric pipeline directory:
