@@ -203,6 +203,7 @@ def get_general_coords(target):
 # Get user input:
 parser = argparse.ArgumentParser()
 parser.add_argument('-project',default=None)
+args = parser.parse_args()
 
 # Get the project name (see the userdata.dat file):
 project = args.project
