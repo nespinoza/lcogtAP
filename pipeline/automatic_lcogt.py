@@ -223,7 +223,8 @@ while True:
         print '\t   Please associate it on the userdata.dat file.'
 
 data_folder = cf
-emails_to_send = ['nestor.espinozap@gmail.com','daniel.bayliss01@gmail.com','andres.jordan@gmail.com']
+sendemail = False
+emails_to_send = ['your.email@gmail.com']
 
 folders_raw = glob.glob(data_folder+'LCOGT/raw/*')
 dates_raw = len(folders_raw)*[[]]
@@ -333,49 +334,50 @@ for i in range(len(dates_raw)):
                 p = subprocess.Popen(code,stdout = subprocess.PIPE, \
                            stderr = subprocess.PIPE,shell = True)
                 p.wait()
-                if(p.returncode != 0 and p.returncode != None):
-                    print 'Error sending mail:'
-                    out, err = p.communicate()
-                    print spaced(err,"\t \t")
-                print 'Sending e-mail...' 
-	        mymail = Bimail('LCOGT DR: '+target_name+' on ' +dates_raw[i]+' Aperture: '+ap, emails_to_send)
-                mymail.htmladd('Data reduction was a SUCCESS! Attached is the lightcurve data.')
-                out = glob.glob(data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/*')
-                for ii in range(len(out)):
-                   if out[ii].split('/')[-1] == 'sinistro':
-                       out_folder = out[ii]
-                       camera = 'sinistro'
-                       break
-                   elif out[ii].split('/')[-1] == 'sbig':
-                       out_folder = out[ii]
-                       camera = 'SBIG'
-                       break
-                shutil.move(out_folder,out_folder+'_'+ap)
-                out_folder = out_folder+'_'+ap
-                real_camera = 'sinistro' # from now on, all LCOGT data comes from sinistro cameras
-                imgs = glob.glob(out_folder+'/target/*')
-                d,h = pyfits.getdata(data_folder+'LCOGT/raw/'+dates_raw[i]+'/'+(imgs[0].split('/')[-1]).split('.')[0]+'.fits',header=True)
-                mymail.htmladd('Camera: '+camera)
-                mymail.htmladd('Observing site: '+h['SITE'])
-                mymail.htmladd('Band: '+band)
-                mymail.htmladd('Dome: '+dome)
-                if len(imgs)>2:
-                    mymail.addattach([imgs[0]])
-                    mymail.addattach([imgs[1]])
-                    mymail.addattach([imgs[2]])
-                elif len(imgs)==2:
-                    mymail.addattach([imgs[0]])
-                    mymail.addattach([imgs[1]])
+                if sendemail:
+                    if(p.returncode != 0 and p.returncode != None):
+                        print 'Error sending mail:'
+                        out, err = p.communicate()
+                        print spaced(err,"\t \t")
+                    print 'Sending e-mail...' 
+                    mymail = Bimail('LCOGT DR: '+target_name+' on ' +dates_raw[i]+' Aperture: '+ap, emails_to_send)
+                    mymail.htmladd('Data reduction was a SUCCESS! Attached is the lightcurve data.')
+                    out = glob.glob(data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/*')
+                    for ii in range(len(out)):
+                       if out[ii].split('/')[-1] == 'sinistro':
+                           out_folder = out[ii]
+                           camera = 'sinistro'
+                           break
+                       elif out[ii].split('/')[-1] == 'sbig':
+                           out_folder = out[ii]
+                           camera = 'SBIG'
+                           break
+                    shutil.move(out_folder,out_folder+'_'+ap)
+                    out_folder = out_folder+'_'+ap
+                    real_camera = 'sinistro' # from now on, all LCOGT data comes from sinistro cameras
+                    imgs = glob.glob(out_folder+'/target/*')
+                    d,h = pyfits.getdata(data_folder+'LCOGT/raw/'+dates_raw[i]+'/'+(imgs[0].split('/')[-1]).split('.')[0]+'.fits',header=True)
+                    mymail.htmladd('Camera: '+camera)
+                    mymail.htmladd('Observing site: '+h['SITE'])
+                    mymail.htmladd('Band: '+band)
+                    mymail.htmladd('Dome: '+dome)
+                    if len(imgs)>2:
+                        mymail.addattach([imgs[0]])
+                        mymail.addattach([imgs[1]])
+                        mymail.addattach([imgs[2]])
+                    elif len(imgs)==2:
+                        mymail.addattach([imgs[0]])
+                        mymail.addattach([imgs[1]])
+                    else:
+                        mymail.addattach([imgs[0]])
+                    mymail.addattach([out_folder+'/'+target_name+'.dat'])
+                    mymail.addattach([out_folder+'/'+target_name+'.pdf'])
+                    mymail.addattach([out_folder+'/LC/'+target_name+'.epdlc'])
+                    mymail.send()
+                  shutil.move(out_folder[:-3]+'_opt',data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/sinistro')
                 else:
-                    mymail.addattach([imgs[0]])
-                mymail.addattach([out_folder+'/'+target_name+'.dat'])
-                mymail.addattach([out_folder+'/'+target_name+'.pdf'])
-                mymail.addattach([out_folder+'/LC/'+target_name+'.epdlc'])
-                mymail.send()
-              shutil.move(out_folder[:-3]+'_opt',data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/sinistro')
-            else:
-                mymail = Bimail('LCOGT DR: '+target_name+' on ' +datetime.now().strftime('%Y/%m/%d'), emails_to_send)
-                mymail.htmladd('Post-processing failed for object '+target+' on '+dates_raw[i])
-                mymail.send()
+                    mymail = Bimail('LCOGT DR: '+target_name+' on ' +datetime.now().strftime('%Y/%m/%d'), emails_to_send)
+                    mymail.htmladd('Post-processing failed for object '+target+' on '+dates_raw[i])
+                    mymail.send()
         # Get back to photometric pipeline directory:
         os.chdir(cwd) 
