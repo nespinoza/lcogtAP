@@ -187,7 +187,7 @@ def get_general_coords(target):
         rahh,ramm,rass,decdd,decmm,decss = (splt[1].split('<TT>\n')[1].split('\n')[0]).split()
         return rahh+':'+ramm+':'+rass,decdd+':'+decmm+':'+decss
     except:
-        coords_file = open('/home/nespinoza/photometry/pipeline/manual_object_coords.dat','r')
+        coords_file = open('../manual_object_coords.dat','r')
         while True:
             line = coords_file.readline()
             if line != '':
