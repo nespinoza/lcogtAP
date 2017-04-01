@@ -7,6 +7,7 @@ import jdcal
 import shutil
 import glob
 import os
+import argparse
 
 import matplotlib
 # Force matplotlib to not use any Xwindows backend.
@@ -199,17 +200,36 @@ def get_general_coords(target):
         coords_file.close()
         return 'NoneFound','NoneFound'
 
-############################
-data_folder = '/data/hatsouth/data/LCOGT/'
-############################
+# Get user input:
+parser = argparse.ArgumentParser()
+parser.add_argument('-project',default=None)
 
+# Get the project name (see the userdata.dat file):
+project = args.project
+
+# Check for which project the user whishes to download data from:
+fprojects = open('../userdata.dat','r')
+while True:
+    line = fprojects.readline()
+    if line != '':
+        if line[0] != '#':
+            cp,cf = line.split()
+            cp = cp.split()[0]
+            cf = cf.split()[0]
+            if project.lower() == cp.lower():
+                break
+    else:
+        print '\t > Project '+project+' is not on the list of saved projects. '
+        print '\t   Please associate it on the userdata.dat file.'
+
+data_folder = cf
 emails_to_send = ['nestor.espinozap@gmail.com','daniel.bayliss01@gmail.com','andres.jordan@gmail.com']
 
-folders_raw = glob.glob(data_folder+'raw/*')
+folders_raw = glob.glob(data_folder+'LCOGT/raw/*')
 dates_raw = len(folders_raw)*[[]]
 for i in range(len(folders_raw)):
     dates_raw[i] = folders_raw[i].split('/')[-1]
-folders_red = glob.glob(data_folder+'red/*')
+folders_red = glob.glob(data_folder+'LCOGT/red/*')
 dates_red = len(folders_red)*[[]]
 for i in range(len(folders_red)):
     dates_red[i] = folders_red[i].split('/')[-1]
@@ -227,9 +247,9 @@ for i in range(len(dates_raw)):
     data_jd = sum(jdcal.gcal2jd(dt.year, dt.month, dt.day))
     # Only check data one week appart (maximum LCOGT takes to process data is ~couple of days, but one week
     # is the limit just to be sure):
-    if data_jd > today_jd-7.:#-16.:
+    if data_jd > today_jd-7.:
         # Get already reduced targets (if any):
-        bf = glob.glob(data_folder+'red/'+dates_raw[i]+'/*')
+        bf = glob.glob(data_folder+'LCOGT/red/'+dates_raw[i]+'/*')
         before_target_folders = []
         for tar_dir in bf:
             if os.path.exists(tar_dir+'/sinistro'):
@@ -240,7 +260,7 @@ for i in range(len(dates_raw)):
         # Now, assuming it is done, run the post-processing. First, switch to the post-processing folder:
         cwd = os.getcwd()
         os.chdir('../post_processing')
-        out_folder = data_folder+'red/'+dates_raw[i]+'/'
+        out_folder = data_folder+'LCOGT/red/'+dates_raw[i]+'/'
         target_folders = glob.glob(out_folder+'*')
         # First, go through every observed object for the given night:
         for target_folder in target_folders:
@@ -320,7 +340,7 @@ for i in range(len(dates_raw)):
                 print 'Sending e-mail...' 
 	        mymail = Bimail('LCOGT DR: '+target_name+' on ' +dates_raw[i]+' Aperture: '+ap, emails_to_send)
                 mymail.htmladd('Data reduction was a SUCCESS! Attached is the lightcurve data.')
-                out = glob.glob(data_folder+'red/'+dates_raw[i]+'/'+target+'/*')
+                out = glob.glob(data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/*')
                 for ii in range(len(out)):
                    if out[ii].split('/')[-1] == 'sinistro':
                        out_folder = out[ii]
@@ -334,7 +354,7 @@ for i in range(len(dates_raw)):
                 out_folder = out_folder+'_'+ap
                 real_camera = 'sinistro' # from now on, all LCOGT data comes from sinistro cameras
                 imgs = glob.glob(out_folder+'/target/*')
-                d,h = pyfits.getdata(data_folder+'raw/'+dates_raw[i]+'/'+(imgs[0].split('/')[-1]).split('.')[0]+'.fits',header=True)
+                d,h = pyfits.getdata(data_folder+'LCOGT/raw/'+dates_raw[i]+'/'+(imgs[0].split('/')[-1]).split('.')[0]+'.fits',header=True)
                 mymail.htmladd('Camera: '+camera)
                 mymail.htmladd('Observing site: '+h['SITE'])
                 mymail.htmladd('Band: '+band)
@@ -352,7 +372,7 @@ for i in range(len(dates_raw)):
                 mymail.addattach([out_folder+'/'+target_name+'.pdf'])
                 mymail.addattach([out_folder+'/LC/'+target_name+'.epdlc'])
                 mymail.send()
-              shutil.move(out_folder[:-3]+'_opt',data_folder+'red/'+dates_raw[i]+'/'+target+'/sinistro')
+              shutil.move(out_folder[:-3]+'_opt',data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/sinistro')
             else:
                 mymail = Bimail('LCOGT DR: '+target_name+' on ' +datetime.now().strftime('%Y/%m/%d'), emails_to_send)
                 mymail.htmladd('Post-processing failed for object '+target+' on '+dates_raw[i])
