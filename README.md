@@ -50,6 +50,11 @@ on having internet connection:
    that you filled in in step 1. This will run the pipeline and save the products 
    under a `red` folder, inside the project's folder (e.g., if the project was 
    `kpBRIGHTSTARS`, products will be saved in `/data/keyproject/bright_stars/LCOGT/red`). 
+   The pipeline will generate photometry for all the datasets in the folder for which no 
+   photometry is yet available that have dates (which is measured from the folder name, 
+   i.e., if the dataset is in `/data/keyproject/bright_stars/LCOGT/red/20170320` it assumes 
+   the dataset is from 2017/03/20) whithin one week from today (measured from your computer's 
+   date).
 
 If you are interested in what the pipeline does, read the next section. If you don't care, 
 move to the "Products" section.
