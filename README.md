@@ -1,7 +1,9 @@
 # lcogtAP
 
-This private repository stores codes to perform aperture photometry on a set of images from 
+This repository stores codes to perform aperture photometry on a set of images from 
 the LCOGT network. It supports data from all LCOGT sites.
+
+Author: Néstor Espinoza (nsespino@uc.cl)
 
 DEPENDENCIES
 ------------
