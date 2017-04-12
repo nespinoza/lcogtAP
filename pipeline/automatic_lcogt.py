@@ -122,10 +122,7 @@ def login(URL, username=None, password=None):
     return s
 
 def get_login_data():
-    base_url = "{0}://{1}.astro.princeton.edu".format("https", "hatsouth")
-    login_url= "{0}/accounts/login/".format(base_url)
-    s = login(login_url, 'nespinoz', '3580tn424rnifdwlll3o002')
-    return s
+    return -1
 
 def get_hs_coords(s,target):
             return -1
