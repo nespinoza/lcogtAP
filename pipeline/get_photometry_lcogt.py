@@ -106,23 +106,30 @@ all_ras = []     # This saves the RA of each object
 all_decs = []    # This saves the DEC of each object
 object_in_files = len(files)*[''] # This saves what object is on each file
 
+good_objects = []
 for i in range(len(files)):
     f = files[i]
     print f
-    d,h = pyfits.getdata(f,header=True)
-    if 'Observatory' in h['SITE'].split()[-1]:
-        obj_name = h['OBJECT']+'-'+h['FILTER']+'-'+h['SITE'].split()[-2]+h['SITE'].split()[-1]+h['ENCID']
-    else:
-        obj_name = h['OBJECT']+'-'+h['FILTER']+'-'+h['SITE'].split()[-1]+h['ENCID']
-    print obj_name
-    object_in_files[i] = obj_name
-    if obj_name not in all_objects:
-        all_objects.append(obj_name)
-        all_ras.append(h['RA'])
-        all_decs.append(h['DEC'])
-        out_folder = out_red_folder+'/'+datafolder+'/'+obj_name
-        if not os.path.exists(out_folder):
-             os.mkdir(out_folder)
+    try:
+      d,h = pyfits.getdata(f,header=True)
+      if 'Observatory' in h['SITE'].split()[-1]:
+          obj_name = h['OBJECT']+'-'+h['FILTER']+'-'+h['SITE'].split()[-2]+h['SITE'].split()[-1]+h['ENCID']
+      else:
+          obj_name = h['OBJECT']+'-'+h['FILTER']+'-'+h['SITE'].split()[-1]+h['ENCID']
+      print obj_name
+      object_in_files[i] = obj_name
+      if obj_name not in all_objects:
+          all_objects.append(obj_name)
+          all_ras.append(h['RA'])
+          all_decs.append(h['DEC'])
+          out_folder = out_red_folder+'/'+datafolder+'/'+obj_name
+          if not os.path.exists(out_folder):
+               os.mkdir(out_folder)
+      good_objects.append(i)
+    except:
+        print 'File ',f,' is corrupted. Skipping it'
+files = [ files[i] for i in good_objects ]
+object_in_files = [ object_in_files[i] for i in good_objects ]
 
 print '\t Found ',len(all_objects),' object(s) for the observations under '+datafolder
 print '\t They are:',all_objects
