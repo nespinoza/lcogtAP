@@ -1,10 +1,16 @@
 FOLDER OPTIONS
---------------
-funpack = /home/myhomefolder/cfitsio/
-astrometry = /home/myhomefolder/astrometry/bin/
+------------------
+funpack                    = /home/myhomefolder/cfitsio/
+astrometry                 = /home/myhomefolder/astrometry/bin/
+
+USER OPTIONS
+------------------
+SENDEMAIL                  = TRUE
+EMAILSENDER                = mymail@gmail.com
+EMAILSENDER_PASSWORD       = MyPassword
+EMAILRECEIVER              = colleage1@gmail.com,colleage2@mymail.de
 
 PHOTOMETRY OPTIONS
 ------------------
-
-ASTROMETRY = FALSE
-GFASTROMETRY = FALSE
+ASTROMETRY                 = true
+GFASTROMETRY               = true

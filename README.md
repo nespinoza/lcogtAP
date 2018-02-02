@@ -28,14 +28,41 @@ found here:
 
     http://www2.lowell.edu/users/massey/Macsoftware.html#Astrom. 
 
-INSTALLATION
-------------
+INSTALLATION & SETUP
+--------------------
 
 The code does not need heavy installing of anything once the dependencies are installed. However, 
-some setup is needed for each system, as the folders on which the `funpack` and the `astronmetry` 
-packages are installed need to be provided. For this, please fill the setup.dat file with the path 
-where the `funpack` (usually of the form `/yourpath/cfitsio/`) and `astrometry` (usually of the 
-form `/yourpath/astrometry/bin/`) executables are.
+some setup is needed for each system and/or photometric run, and these are defined in the `setup.dat` 
+file that you can fill with your information.
+
+Under the `FOLDER OPTIONS` of the setup file, you have to fill the folders on which the `funpack` and 
+the `astrometry` executables are. For `funpack` it is usually of the form `/yourpath/cfitsio/`, while 
+for `astrometry` they are usually of the form `/yourpath/astrometry/bin/`.
+
+Under the `USER OPTIONS`, you might define some user-defined properties:
+
+    SENDEMAIL                 If set to True, an email will be sent from an user-defined e-mail address 
+                              to an user-defined e-mail address with information regarding the reduced 
+                              data (lightcurves and images).
+
+    EMAILSENDER               E-mail of the e-mail sender. Currently supports only gmail accounts. 
+                              Note the gmail account has to be habilitated for this via the less 
+                              secure apps: https://www.google.com/settings/security/lesssecureapps
+
+    EMAILSENDER_PASSWORD      Password of the e-mail sender defined above.
+
+    EMAILRECEIVER             If SENDEMAIL is set to True, this is a comma-separated list of e-mails that 
+                              will receive the e-mail with the information regarding the reduced data.
+
+Under the `PHOTOMETRY OPTIONS` you can tweak what the pipeline will do:
+
+    ASTROMETRY                If set to True, the pipeline will automatically perform the photometry.
+                              For current LCOGT images this is not needed, so you might want to set it 
+                              to False.
+
+    GFASTROMETRY              If set to True, the astrometry will be performed on a copy of the original 
+                              image where a gaussian filter will be performed. This greatly 
+                              improves the astrometric solution on highly defocused images.
 
 USAGE
 ------------
