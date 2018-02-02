@@ -33,8 +33,75 @@ np.seterr(divide='ignore', invalid='ignore')
 # Define style of plotting (ggplot is nicer):
 plt.style.use('ggplot')
 
+def read_setupfile():
+    fin = open('setup.dat','r')
+    fpack_folder = ''
+    astrometry_folder = ''
+    sendemail = False
+    emailsender = ''
+    emailsender_pwd = ''
+    emailreceiver = ['']
+    astrometry = False
+    gfastrometry = False
+    done = False
+    while True:
+        line = fin.readline()
+        if 'FOLDER OPTIONS' in line:
+            while True:
+                line = fin.readline()
+                if 'funpack' in line:
+                    fpack_folder = line.split('=')[-1].split('\n')[0].strip()
+                if 'astrometry' in line:
+                    astrometry_folder = line.split('=')[-1].split('\n')[0].strip()
+                if 'USER OPTIONS' in line:
+                    break
+        if 'USER OPTIONS' in line:
+            while True:
+                line = fin.readline()
+                line_splitted = line.split('=')
+                if len(line_splitted) == 2:
+                    opt,res = line_splitted
+                    opt = opt.strip()
+                    res = res.split('\n')[0].strip()
+                    print [opt],[res]
+                    if 'SENDEMAIL' == opt:
+                        if res.lower() == 'true':
+                            sendemail = True
+                    if 'EMAILSENDER' == opt:
+                            emailsender = res
+                    if 'EMAILSENDER_PASSWORD' == opt:
+                            emailsender_pwd = res
+                    if 'EMAILRECEIVER' == opt:
+                            emailreceiver = res.split(',')
+                if 'PHOTOMETRY OPTIONS' in line:
+                    break
+        if 'PHOTOMETRY OPTIONS' in line:
+            while True:
+                line = fin.readline()
+                line_splitted = line.split('=')
+                if len(line_splitted) == 2:
+                    opt,res = line_splitted
+                    opt = opt.strip()
+                    res = res.split('\n')[0].strip()
+                    if opt == 'ASTROMETRY':
+                        if res.lower() == 'true':
+                            astrometry = True
+                    if opt == 'GFASTROMETRY':
+                        if res.lower() == 'true':
+                            gfastrometry = True
+                if line == '':
+                    done = True
+                    break
+        if done:
+            break
+    return fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
+           emailreceiver,astrometry,gfastrometry
+
+read_setupfile = fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
+                 emailreceiver,astrometry,gfastrometry
+
 # Define astrometry source directory:
-astrometry_directory = '/data/astrometry/bin/'
+astrometry_directory = astrometry_folder # '/data/astrometry/bin/'
 
 def date_format(year,month,day,hour,minute,second):
         def fn(number):
@@ -347,7 +414,7 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
        print f
        # Decompress file. Necessary because Astrometry cant handle this:
        if f[-7:] == 'fits.fz':
-          p = subprocess.Popen('/home/nespinoza/cfitsio/cfitsio/funpack '+f, stdout = subprocess.PIPE, \
+          p = subprocess.Popen(fpack_folder+'funpack '+f, stdout = subprocess.PIPE, \
                                 stderr = subprocess.PIPE, shell = True)
           p.wait()
           if(p.returncode != 0 and p.returncode != None):

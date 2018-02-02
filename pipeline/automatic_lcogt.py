@@ -30,13 +30,79 @@ from email.mime.base import MIMEBase
 from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 
+def read_setupfile():
+    fin = open('../setup.dat','r')
+    fpack_folder = ''
+    astrometry_folder = ''
+    sendemail = False
+    emailsender = ''
+    emailsender_pwd = ''
+    emailreceiver = ['']
+    astrometry = False
+    gfastrometry = False
+    done = False
+    while True:
+        line = fin.readline()
+        if 'FOLDER OPTIONS' in line:
+            while True:
+                line = fin.readline()
+                if 'funpack' in line:
+                    fpack_folder = line.split('=')[-1].split('\n')[0].strip()
+                if 'astrometry' in line:
+                    astrometry_folder = line.split('=')[-1].split('\n')[0].strip()
+                if 'USER OPTIONS' in line:
+                    break
+        if 'USER OPTIONS' in line:
+            while True:
+                line = fin.readline()
+                line_splitted = line.split('=')
+                if len(line_splitted) == 2:
+                    opt,res = line_splitted
+                    opt = opt.strip()
+                    res = res.split('\n')[0].strip()
+                    print [opt],[res]
+                    if 'SENDEMAIL' == opt:
+                        if res.lower() == 'true':
+                            sendemail = True
+                    if 'EMAILSENDER' == opt:
+                            emailsender = res
+                    if 'EMAILSENDER_PASSWORD' == opt:
+                            emailsender_pwd = res
+                    if 'EMAILRECEIVER' == opt:
+                            emailreceiver = res.split(',')
+                if 'PHOTOMETRY OPTIONS' in line:
+                    break
+        if 'PHOTOMETRY OPTIONS' in line:
+            while True:
+                line = fin.readline()
+                line_splitted = line.split('=')
+                if len(line_splitted) == 2:
+                    opt,res = line_splitted
+                    opt = opt.strip()
+                    res = res.split('\n')[0].strip()
+                    if opt == 'ASTROMETRY':
+                        if res.lower() == 'true':
+                            astrometry = True
+                    if opt == 'GFASTROMETRY':
+                        if res.lower() == 'true':
+                            gfastrometry = True
+                if line == '':
+                    done = True
+                    break
+        if done:
+            break
+    return fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
+           emailreceiver,astrometry,gfastrometry
+
 class Bimail:
 	def __init__(self,subject,recipients):
+                read_setupfile = fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
+                                 emailreceiver,astrometry,gfastrometry
 		self.subject = subject
 		self.recipients = recipients
 		self.htmlbody = ''
-		self.sender = "updated.results@gmail.com"
-		self.senderpass = 'qaz123wsx456'
+		self.sender = emailsender # "updated.results@gmail.com"
+		self.senderpass = emailsender_pwd#'qaz123wsx456'
 		self.attachments = []
  
 	def send(self):
@@ -274,8 +340,11 @@ while True:
         print '\t   Please associate it on the userdata.dat file.'
 
 data_folder = cf
-sendemail = True
-emails_to_send = ['nestor.espinozap@gmail.com','daniel.bayliss01@gmail.com','andres.jordan@gmail.com']
+
+read_setupfile = fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
+                                 emailreceiver,astrometry,gfastrometry
+
+emails_to_send = emailreceiver #['nestor.espinozap@gmail.com','daniel.bayliss01@gmail.com','andres.jordan@gmail.com']
 
 folders_raw = glob.glob(data_folder+'LCOGT/raw/*')
 dates_raw = len(folders_raw)*[[]]
@@ -308,7 +377,13 @@ for i in range(len(dates_raw)):
                 before_target_folders.append(tar_dir)
         # Reduce the data (if already reduced, nothing will happen):
         print 'Reducing data for '+dates_raw[i]+' night. Reducing...'
-        os.system('python get_photometry_lcogt.py -project '+project+' -datafolder '+dates_raw[i]) 
+        optional_options = ''
+        if astrometry:
+            optional_options = ' --get_astrometry'
+        if gfastrometry:
+            optional_options = optional_options+' --gf_opt_astrometry'
+            
+        os.system('python get_photometry_lcogt.py -project '+project+' -datafolder '+dates_raw[i]+optional_options) 
         # Now, assuming it is done, run the post-processing. First, switch to the post-processing folder:
         cwd = os.getcwd()
         os.chdir('../post_processing')
