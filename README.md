@@ -13,7 +13,10 @@ This code makes use of four important python libraries:
     + Numpy.
     + Scipy.
     + Pyfits.
+    + Beautiful Soup (https://www.crummy.com/software/BeautifulSoup/bs4/doc/).
     + Astropy (http://www.astropy.org/).
+    + PhotUtils (http://photutils.readthedocs.io/).
+    + Astroquery (https://astroquery.readthedocs.io/en/latest/).
     + funpack (https://heasarc.gsfc.nasa.gov/fitsio/fpack/).
 
 All of them are open source and can be easily installed in any machine. 
