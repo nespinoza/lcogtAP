@@ -1,2 +1,10 @@
+FOLDER OPTIONS
+--------------
 funpack = /home/myhomefolder/cfitsio/
 astrometry = /home/myhomefolder/astrometry/bin/
+
+PHOTOMETRY OPTIONS
+------------------
+
+ASTROMETRY = FALSE
+GFASTROMETRY = FALSE
