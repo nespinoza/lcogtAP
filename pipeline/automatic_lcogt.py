@@ -60,7 +60,6 @@ def read_setupfile():
                     opt,res = line_splitted
                     opt = opt.strip()
                     res = res.split('\n')[0].strip()
-                    print [opt],[res]
                     if 'SENDEMAIL' == opt:
                         if res.lower() == 'true':
                             sendemail = True
@@ -96,13 +95,13 @@ def read_setupfile():
 
 class Bimail:
 	def __init__(self,subject,recipients):
-                read_setupfile = fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
-                                 emailreceiver,astrometry,gfastrometry
+                fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
+                             emailreceiver,astrometry,gfastrometry = read_setupfile()
 		self.subject = subject
 		self.recipients = recipients
 		self.htmlbody = ''
-		self.sender = emailsender # "updated.results@gmail.com"
-		self.senderpass = emailsender_pwd#'qaz123wsx456'
+		self.sender = emailsender 
+		self.senderpass = emailsender_pwd
 		self.attachments = []
  
 	def send(self):
@@ -341,8 +340,8 @@ while True:
 
 data_folder = cf
 
-read_setupfile = fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
-                                 emailreceiver,astrometry,gfastrometry
+fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
+emailreceiver,astrometry,gfastrometry = read_setupfile()
 
 emails_to_send = emailreceiver #['nestor.espinozap@gmail.com','daniel.bayliss01@gmail.com','andres.jordan@gmail.com']
 

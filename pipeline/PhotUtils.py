@@ -34,7 +34,7 @@ np.seterr(divide='ignore', invalid='ignore')
 plt.style.use('ggplot')
 
 def read_setupfile():
-    fin = open('setup.dat','r')
+    fin = open('../setup.dat','r')
     fpack_folder = ''
     astrometry_folder = ''
     sendemail = False
@@ -63,7 +63,6 @@ def read_setupfile():
                     opt,res = line_splitted
                     opt = opt.strip()
                     res = res.split('\n')[0].strip()
-                    print [opt],[res]
                     if 'SENDEMAIL' == opt:
                         if res.lower() == 'true':
                             sendemail = True
@@ -97,8 +96,9 @@ def read_setupfile():
     return fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
            emailreceiver,astrometry,gfastrometry
 
-read_setupfile = fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
-                 emailreceiver,astrometry,gfastrometry
+
+fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
+             emailreceiver,astrometry,gfastrometry = read_setupfile()
 
 # Define astrometry source directory:
 astrometry_directory = astrometry_folder # '/data/astrometry/bin/'
@@ -769,7 +769,11 @@ def SkyToPix(h,ras,decs):
     # Return x,y pixel coordinates:
     return pix_coords[:,0],pix_coords[:,1]
 
-from photutils import CircularAperture,CircularAnnulus,aperture_photometry,daofind
+from photutils import CircularAperture,CircularAnnulus,aperture_photometry
+try:
+    from photutils import daofind
+except:
+    from photutils import DAOStarFinder as daofind
 from astropy.stats import median_absolute_deviation as mad
 
 global_d = 0
@@ -828,16 +832,17 @@ def getAperturePhotometry(d,h,x,y,R,target_names, frame_name = None, out_dir = N
 def getCentroidsAndFluxes(i):
        fluxes_R = np.ones(len(global_R))*(-1)
        fluxes_err_R = np.ones(len(global_R))*(-1)
+       #print fluxes_R
        # Generate a sub-image around the centroid, if centroid is inside the image:
        if global_x[i]>0 and global_x[i]<global_d.shape[1] and \
            global_y[i]>0 and global_y[i]<global_d.shape[0]:
-           if 'target' in global_target_names[i]:
-               print 'im in!!'
+           #if 'target' in global_target_names[i]:
+           #    print 'im in!!'
            x0 = np.max([0,int(global_x[i])-global_half_size])
            x1 = np.min([int(global_x[i])+global_half_size,global_d.shape[1]])
            y0 = np.max([0,int(global_y[i])-global_half_size])
            y1 = np.min([int(global_y[i])+global_half_size,global_d.shape[0]])
-           subimg = np.copy(global_d[y0:y1,x0:x1])
+           subimg = np.float64(np.copy(global_d[y0:y1,x0:x1]))
 
            # Substract the (background) median counts, get estimate 
            # of the sky std dev:
@@ -875,7 +880,7 @@ def getCentroidsAndFluxes(i):
 
            # If saveplot is True, save image and the centroid:
            if global_saveplot and ('target' in global_target_names[i]):
-               print 'Got inside!'
+               #print 'Got inside!'
                if not os.path.exists(global_out_dir+global_target_names[i]):
                    os.mkdir(global_out_dir+global_target_names[i])
                im = plt.imshow(subimg)
@@ -891,12 +896,12 @@ def getCentroidsAndFluxes(i):
            # With the calculated centroids, get aperture photometry:
            for j in range(len(global_R)):
                fluxes_R[j],fluxes_err_R[j] = getApertureFluxes(subimg,x_cen,y_cen,global_R[j],sky_sigma,global_GAIN)
-           if 'target' in global_target_names[i]:
-               print fluxes_R[0],fluxes_R[-1]
+           #if 'target' in global_target_names[i]:
+           #    print fluxes_R[0],fluxes_R[-1]
            return fluxes_R, fluxes_err_R, x_ref, y_ref,background,background_sigma,estimate_fwhm(subimg,x_cen,y_cen)
        else:
-           if 'target' in global_target_names[i]:
-               print 'im NOT in for ',global_target_names[i]
+           #if 'target' in global_target_names[i]:
+           #    print 'im NOT in for ',global_target_names[i]
            return fluxes_R, fluxes_err_R, global_x[i], global_y[i],0.,0.,0.
 
 def estimate_fwhm(data,x0,y0):
@@ -927,7 +932,7 @@ def estimate_fwhm(data,x0,y0):
 def getApertureFluxes(subimg,x_cen,y_cen,Radius,sky_sigma,GAIN):
     apertures = CircularAperture([(x_cen,y_cen)],r=Radius)
     rawflux_table = aperture_photometry(subimg, apertures, \
-            error=sky_sigma, effective_gain = GAIN)
+            error=sky_sigma)#, effective_gain = GAIN)
     return rawflux_table['aperture_sum'][0],rawflux_table['aperture_sum_err'][0]
 
 def CoordsToDecimal(coords):
