@@ -13,7 +13,8 @@ This code makes use of four important python libraries:
     + Numpy.
     + Scipy.
     + Pyfits.
-    + Astropy
+    + Astropy (http://www.astropy.org/).
+    + funpack (https://heasarc.gsfc.nasa.gov/fitsio/fpack/).
 
 All of them are open source and can be easily installed in any machine. 
 
@@ -26,6 +27,15 @@ Instructions useful for Mac users on how to install this package might be
 found here: 
 
     http://www2.lowell.edu/users/massey/Macsoftware.html#Astrom. 
+
+INSTALLATION
+------------
+
+The code does not need heavy installing of anything once the dependencies are installed. However, 
+some setup is needed for each system, as the folders on which the `funpack` and the `astronmetry` 
+packages are installed need to be provided. For this, please fill the setup.dat file with the path 
+where the `funpack` (usually of the form `/yourpath/cfitsio/`) and `astrometry` (usually of the 
+form `/yourpath/astrometry/bin/`) executables are.
 
 USAGE
 ------------
