@@ -8,7 +8,7 @@ Author: Néstor Espinoza (nsespino@uc.cl)
 DEPENDENCIES
 ------------
 
-This code makes use of four important python libraries:
+This code makes use of the following python libraries:
 
     + Numpy.
     + Scipy.
@@ -21,8 +21,9 @@ This code makes use of four important python libraries:
 
 All of them are open source and can be easily installed in any machine. 
 
-Furthermore, it makes heavy use of the astrometry package, which can be 
-downloaded from here: 
+Furthermore, it optionally makes use of the astrometry package (if your images 
+dont have an astrometric solution or you want to compute it yourself with the pipeline), 
+which can be downloaded from here: 
 
                 http://astrometry.net/use.html. 
 
