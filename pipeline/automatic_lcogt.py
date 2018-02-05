@@ -375,7 +375,7 @@ for i in range(len(dates_raw)):
             if os.path.exists(tar_dir+'/sinistro'):
                 before_target_folders.append(tar_dir)
         # Reduce the data (if already reduced, nothing will happen):
-        print 'Reducing data for '+dates_raw[i]+' night. Reducing...'
+        print '>> Reducing data for '+dates_raw[i]+' night. Reducing...'
         optional_options = ''
         if astrometry:
             optional_options = ' --get_astrometry'

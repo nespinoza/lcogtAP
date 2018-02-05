@@ -200,7 +200,7 @@ import astropy.units as u
 def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y_max, R,\
         catalog = u'fp_psc',date='20180101'):
 
-    print ('\t > Generating master dictionary for coordinates',central_ra,central_dec,'...')
+    print '\t > Generating master dictionary for coordinates',central_ra,central_dec,'...'
     # Make query to 2MASS:
     result = Irsa.query_region(coord.SkyCoord(central_ra,central_dec,unit=(u.deg,u.deg)),spatial = 'Cone',\
                                radius=central_radius*3600.*u.arcsec,catalog=catalog)
@@ -231,7 +231,7 @@ def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y
     month = int(date[4:6])
     day = int(date[6:8])
     s = str(year)+'.'+str(month)+'.'+str(day)
-    dt = parser.parse(s)
+    dt = dateutil.parser.parse(s)
     data_jd = sum(jdcal.gcal2jd(dt.year, dt.month, dt.day))
     deltat = (data_jd-2451544.5)/365.25
     print '\t Correcting PPM for date '+date+', deltat: ',deltat,'...'
@@ -310,7 +310,7 @@ def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y
             master_dict['data'][all_names[i]]['fluxes_'+str(r)+'_pix_ap'] = np.array([])
             master_dict['data'][all_names[i]]['fluxes_'+str(r)+'_pix_ap_err'] = np.array([])
 
-    print ('\t > Extraing data for '+str(len(all_names))+' sources')
+    print ('\t > Extracting data for '+str(len(all_names))+' sources')
     return master_dict,all_names
 
 from astropy.io import fits
@@ -418,7 +418,7 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
     first_time = True
     for f in filenames:
        # Try opening the fits file (might be corrupt):
-       print f
+       #print f
        # Decompress file. Necessary because Astrometry cant handle this:
        if f[-7:] == 'fits.fz':
           p = subprocess.Popen(fpack_folder+'funpack '+f, stdout = subprocess.PIPE, \
@@ -507,7 +507,7 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
                                     if sitealt is None:
                                         sitealt = h[alt_h_name]
                                     if longitude is None:
-                                       print sitelong,sitelat,sitealt
+                                       #print sitelong,sitelat,sitealt
                                        longitude,latitude,elevation = site_data_2_string(sitelong,sitelat,sitealt)
                                     first_time = False
 
@@ -569,7 +569,7 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
                             x,y = SkyToPix(h,master_dict['data']['RA_degs'],master_dict['data']['DEC_degs'])
                             # Get fluxes of all the targets in the image for different apertures:
                             print ('\t Performing aperture photometry on objects...')
-                            tic = clocking_time.clock()
+                            tic = clocking_time.time()
                             if type(egain) == type('str'):
                                fluxes,errors,x_ref,y_ref,bkg,bkg_err,fwhm = getAperturePhotometry(data,h,x,y,R,\
                                             all_names, frame_name = filename.split('/')[-1], \
@@ -581,8 +581,8 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
                             #print all_names[71]
                             #print 'Centroids, before:',x[71],y[71]
                             #print 'Centroids, after :',x_ref[71],y_ref[71]
-                            toc = clocking_time.clock()
-                            print ('Took '+str(toc-tic)+' seconds.')
+                            toc = clocking_time.time()
+                            print ('\t Took '+str(toc-tic)+' seconds.')
                             # Save everything in the dictionary:
                             for i in range(len(all_names)):
                                     master_dict['data'][all_names[i]]['centroids_x'] = \

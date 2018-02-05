@@ -80,9 +80,9 @@ max_aperture = int(args.maxap)
 aperture_step = int(args.apstep)
 
 get_astrometry = args.get_astrometry
-print get_astrometry
+#print get_astrometry
 ref_centers = args.ref_centers
-print ref_centers
+#print ref_centers
 gf_opt_astrometry = args.gf_opt_astrometry
 
 ###################################################################
@@ -109,14 +109,14 @@ object_in_files = len(files)*[''] # This saves what object is on each file
 good_objects = []
 for i in range(len(files)):
     f = files[i]
-    print f
+    #print f
     try:
       d,h = pyfits.getdata(f,header=True)
       if 'Observatory' in h['SITE'].split()[-1]:
           obj_name = h['OBJECT']+'-'+h['FILTER']+'-'+h['SITE'].split()[-2]+h['SITE'].split()[-1]+h['ENCID']
       else:
           obj_name = h['OBJECT']+'-'+h['FILTER']+'-'+h['SITE'].split()[-1]+h['ENCID']
-      print obj_name
+      #print obj_name
       object_in_files[i] = obj_name
       if obj_name not in all_objects:
           all_objects.append(obj_name)
