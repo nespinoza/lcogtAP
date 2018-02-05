@@ -152,8 +152,6 @@ for i in range(len(all_objects)):
                 all_files.append(files[j])
         # Convert RA and DECs of object to decimal degrees:
         ra_obj,dec_obj = PhotUtils.CoordsToDecimal([[all_ras[i],all_decs[i]]])
-        print ra_obj
-        print dec_obj            
         if not os.path.exists(out_data_folder+'photometry.pkl'):
            master_dict = None
         else:

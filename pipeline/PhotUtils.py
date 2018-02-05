@@ -193,47 +193,27 @@ def get_planet_data(planet_data,target_object_name):
     print 'Add it to the list and try running the code again.'
     sys.exit()
 
-"""
-from astropy.vo.client import conesearch
-def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y_max, R,\
-        catalog = u'2MASS All-Sky Point Source Catalog 1'):
-
-    print ('\t > Generating master dictionary for coordinates',central_ra,central_dec,'...')
-    # Make query to 2MASS:
-    while True:
-        try:
-            try:
-                result = conesearch.conesearch( ( [central_ra,central_dec] ), \
-                        central_radius, catalog_db = catalog )
-                break
-            except:
-                result = conesearch.conesearch( ( [central_ra,central_dec] ), \
-                        central_radius, catalog_db = u'Two Micron All Sky Survey (2MASS) 1')
-                break
-        except:
-            print '\t > Timed out. Trying again...'
-    # Save coordinates, magnitudes and errors on the magnitudes:
-    all_ids = result.array['designation'].data
-    all_ra = result.array['ra'].data
-    all_dec = result.array['dec'].data
-    all_j = result.array['j_m'].data
-    all_j_err = result.array['j_msigcom'].data
-    all_k = result.array['k_m'].data
-    all_k_err = result.array['k_msigcom'].data
-    all_h = result.array['h_m']
-    all_h_err = result.array['h_msigcom'].data
-"""
 from astroquery.irsa import Irsa
 # Default limit of rows is 500. Go for infinity and beyond!
 Irsa.ROW_LIMIT = np.inf
 import astropy.units as u
 def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y_max, R,\
-        catalog = u'fp_psc'):
+        catalog = u'fp_psc',date='20180101'):
 
     print ('\t > Generating master dictionary for coordinates',central_ra,central_dec,'...')
     # Make query to 2MASS:
     result = Irsa.query_region(coord.SkyCoord(central_ra,central_dec,unit=(u.deg,u.deg)),spatial = 'Cone',\
                                radius=central_radius*3600.*u.arcsec,catalog=catalog)
+
+    # Query to PPMXL to get proper motions:
+    resultppm = Irsa.query_region(coord.SkyCoord(central_ra,central_dec,unit=(u.deg,u.deg)),spatial = 'Cone',\
+                               radius=central_radius*3600.*u.arcsec,catalog='ppmxl')
+
+    # Get RAs, DECs, and PMs from this last catalog:
+    rappmxl = np.array(resultppm['ra'].data.data.tolist())
+    decppmxl = np.array(resultppm['dec'].data.data.tolist())
+    rappm = np.array(resultppm['pmra'].data.data.tolist())
+    decppm = np.array(resultppm['pmde'].data.data.tolist())
 
     # Save coordinates, magnitudes and errors on the magnitudes:
     all_ids = np.array(result['designation'].data.data.tolist())
@@ -245,6 +225,32 @@ def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y
     all_k_err = np.array(result['k_msigcom'].data.data.tolist())
     all_h = np.array(result['h_m'].data.data.tolist())
     all_h_err = np.array(result['h_msigcom'].data.data.tolist())
+
+    # Correct RA and DECs for PPM. First, get delta T:
+    year = int(date[:4])
+    month = int(date[4:6])
+    day = int(date[6:8])
+    s = str(year)+'.'+str(month)+'.'+str(day)
+    dt = parser.parse(s)
+    data_jd = sum(jdcal.gcal2jd(dt.year, dt.month, dt.day))
+    deltat = (data_jd-2451544.5)/365.25
+    print '\t Correcting PPM for date '+date+', deltat: ',deltat,'...'
+    for i in range(len(all_ra)):
+        c_ra = all_ra[i]
+        c_dec = all_dec[i]
+        #dist_hats = np.sqrt((59.410455-c_ra)**2 + (-25.189964-c_dec)**2)
+        #if dist_hats < 3./3600.:
+         #   print 'Found it!',c_ra,c_dec
+        dist = (c_ra-rappmxl)**2 + (c_dec-decppmxl)**2
+        min_idx = np.where(dist == np.min(dist))[0]
+        # 3 arcsec tolerance:
+        if dist[min_idx] < 3./3600.:
+            all_ra[i] = all_ra[i] + deltat*rappm[min_idx]
+            all_dec[i] = all_dec[i] + deltat*decppm[min_idx]
+            #if dist_hats < 3./3600.:
+            #    print 'New RA DEC:',all_ra[i],all_dec[i]
+    print '\t Done.'
+
     # Check which ras and decs have valid coordinates inside the first image. 
     # Save only those as valid objects for photometry:
     x,y = SkyToPix(h,all_ra,all_dec)
@@ -288,11 +294,11 @@ def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y
         else:
             all_names[i] = 'target_star_'+str(i)
             # Replace RA and DEC with the ones given by the user:
-            try:
-                master_dict['data']['RA_degs'][i],master_dict['data']['DEC_degs'][i] = ra_obj,dec_obj
-            except:
-                master_dict['data']['RA_degs'][i],master_dict['data']['DEC_degs'][i] = ra_obj[0],dec_obj[0]
-            master_dict['data']['RA_coords'][i],master_dict['data']['DEC_coords'][i] = DecimalToCoords(ra_obj,dec_obj)
+            #try:
+            #    master_dict['data']['RA_degs'][i],master_dict['data']['DEC_degs'][i] = ra_obj,dec_obj
+            #except:
+            #    master_dict['data']['RA_degs'][i],master_dict['data']['DEC_degs'][i] = ra_obj[0],dec_obj[0]
+            #master_dict['data']['RA_coords'][i],master_dict['data']['DEC_coords'][i] = DecimalToCoords(ra_obj,dec_obj)
             #master_dict['data']['RA_degs'][i],master_dict['data']['DEC_degs'][i] = CoordsToDecimal([['00:34:47.32','04:39:27.93']])
         master_dict['data'][all_names[i]] = {}
         master_dict['data'][all_names[i]]['centroids_x'] = np.array([])
@@ -349,6 +355,7 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
         times_method = 3
 
     elif observatory == 'LCOGT':
+        # This data is good for LCOGT 1m.
         filter_h_name = 'FILTER'
         long_h_name = 'LONGITUD'
         lat_h_name = 'LATITUDE'
@@ -472,10 +479,14 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
 
                             # Create master dictionary and define data to be used in the code:    
                             if first_time:
+                                    if times_method == 2:
+                                        date = ''.join(h['DATE-OBS'].split('T')[0].split('-'))
+                                    else:
+                                        date = ''.join(h['DATE-OBS'].split('-'))
                                     central_ra,central_dec = [h['CRVAL1']],[h['CRVAL2']]#CoordsToDecimal([[h['RA'].split()[0],h['DEC'].split()[0]]])
                                     if not updating_dict:
                                         master_dict,all_names = get_dict(central_ra[0],central_dec[0],search_radius,ra_obj,dec_obj,\
-                                                                        h,data.shape[1],data.shape[0], R)
+                                                                        h,data.shape[1],data.shape[0], R,date=date)
                                     else:
                                         all_data = master_dict['data'].keys()
                                         all_names_d = []
