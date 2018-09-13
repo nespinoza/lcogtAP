@@ -54,8 +54,13 @@ def get_super_comp(all_comp_fluxes,all_comp_fluxes_err):
                 sigma = get_sigma(data)
                 idx = np.where((data<med_data+5*sigma)&(data>med_data-5*sigma)&\
                                (~np.isnan(data))&(~np.isnan(data_err)))[0]
-                super_comp[i] = np.median(data[idx])
-                super_comp_err[i] = np.sqrt(np.sum(data_err[idx]**2)/np.double(len(data_err[idx])))
+
+                if len(idx) <= 3:
+                    super_comp[i] = np.median(data)
+                    super_comp_err[i] = np.sqrt(np.sum(data_err**2)/np.double(len(data_err)))
+                else:
+                    super_comp[i] = np.median(data[idx])
+                    super_comp_err[i] = np.sqrt(np.sum(data_err[idx]**2)/np.double(len(data_err[idx])))
         return super_comp,super_comp_err
 
 def get_sigma(data):
@@ -163,11 +168,10 @@ def save_photometry(t,rf,rf_err,output_folder,target_name, plot_data = False, ti
 		plt.errorbar(np.array(times_bins) - 2450000,np.array(mags_bins),np.array(errors_bins),fmt='o',label='Binned data')
 		plt.xlabel('Time - 2450000 (BJD) ')
 		plt.ylabel('Differential Magnitude')
-		plt.title(title,fontsize='12')
+		plt.title(title,fontsize='8')
 		plt.gca().invert_yaxis()
 		plt.xlim(np.min(t-2450000)-np.abs(np.median(np.diff(t))),np.max(t-2450000)+np.abs(np.median(np.diff(t))))
 		plt.ylim(0.03,-0.015)
-                #plt.ylim(0.005,-0.003)
 		x_formatter = ticker.ScalarFormatter(useOffset=False)
 		plt.gca().xaxis.set_major_formatter(x_formatter)
 		plt.legend()
@@ -315,6 +319,107 @@ def save_photometry_hs(data,idx,idx_comparison,chosen_aperture,min_aperture,max_
         f.write('{0:>23}    {1:.6f}    {2:.6f}    {3:.4f}    {4:.4f}\n'.format(all_ids[i]+'.epdlc', all_ras[i], all_decs[i], all_mags[i], all_rms[i]))
     f.close()
 
+def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frames,idx_frames,half_size = 200, phot_radius = 2.):
+        """
+        This is a modified copy of the next function, used to plot the target with the companion stars whose photometry was extracted:
+        """
+        # Get the centroids of the target:
+        try:
+                target_cen_x = data['data']['star_'+str(idx)]['centroids_x'][idx_frames]
+                target_cen_y = data['data']['star_'+str(idx)]['centroids_y'][idx_frames]
+                target_RA = data['data']['RA_degs'][idx]
+                target_DEC = data['data']['DEC_degs'][idx]
+                print 'Target:','star_'+str(idx)
+        except:
+                target_cen_x = data['data']['target_star_'+str(idx)]['centroids_x'][idx_frames]
+                target_cen_y = data['data']['target_star_'+str(idx)]['centroids_y'][idx_frames]
+                print 'Target:','target_star_'+str(idx)
+
+        # Same for the comparison stars:
+        for i in range(len(idx_comparison)):
+                idx_c = idx_comparison[i]
+                try:
+                        comp_cen_x = data['data']['star_'+str(idx_c)]['centroids_x'][idx_frames]
+                        comp_cen_y = data['data']['star_'+str(idx_c)]['centroids_y'][idx_frames]
+                        comp_RA = data['data']['RA_degs'][idx_c]
+                        comp_DEC = data['data']['DEC_degs'][idx_c]
+                except:
+                        comp_cen_x = data['data']['target_star_'+str(idx_c)]['centroids_x'][idx_frames]
+                        comp_cen_y = data['data']['target_star_'+str(idx_c)]['centroids_y'][idx_frames]
+                        comp_RA = data['data']['RA_degs'][idx_c]
+                        comp_DEC = data['data']['DEC_degs'][idx_c]
+                if i==0:
+                        all_comp_cen_x = comp_cen_x
+                        all_comp_cen_y = comp_cen_y
+                        all_comp_cen_name = data['data']['IDs'][idx_c]
+                        all_comp_RA = comp_RA
+                        all_comp_DEC = comp_DEC
+                else:
+                        all_comp_cen_x = np.vstack((all_comp_cen_x,comp_cen_x))
+                        all_comp_cen_y = np.vstack((all_comp_cen_y,comp_cen_y))
+                        all_comp_cen_name = np.vstack((all_comp_cen_name,data['data']['IDs'][idx_c]))
+                        all_comp_RA = np.vstack((all_comp_RA,comp_RA))
+                        all_comp_DEC = np.vstack((all_comp_DEC,comp_DEC))
+
+        # Calculate (local) pixel scale:
+        distances_x = all_comp_cen_x - target_cen_x
+        distances_y = all_comp_cen_y - target_cen_y
+        distances_RA = (all_comp_RA - target_RA)*60.
+        distances_DEC = (all_comp_DEC - target_DEC)*60.
+        xdist = np.median(distances_x,axis=1)
+        ydist = np.median(distances_y,axis=1)
+        scale = np.median(np.sqrt(xdist**2 + ydist**2)/np.sqrt(distances_RA**2 + distances_DEC**2))
+
+        print 'Estimated scale:',(1./scale)*60.,' arcsec/pixel'
+        # Now image:
+        nframes = len(frames)
+        for i in range(nframes):
+                plt.figure(figsize=(10,10))
+                tcen_x,tcen_y,frame_name,object_name = target_cen_x[i],target_cen_y[i],frames[i],'target_full'
+
+                # Plot image and centroid of the target:
+                d = pyfits.getdata(frame_name)
+                x0 = np.max([0,int(tcen_x)-half_size])
+                x1 = np.min([int(tcen_x)+half_size,d.shape[1]])
+                y0 = np.max([0,int(tcen_y)-half_size])
+                y1 = np.min([int(tcen_y)+half_size,d.shape[0]])
+                subimg = np.copy(d[y0:y1,x0:x1])
+                subimg -= np.median(subimg)
+                if not os.path.exists(out_dir+object_name):
+                        os.mkdir(out_dir+object_name)
+                im = plt.imshow(subimg,extent=[x0 - int(tcen_x),x1 - int(tcen_x),y0 - int(tcen_y),y1 - int(tcen_y)])
+                im.set_clim(0,1000)
+                x_cen = int(tcen_x) - tcen_x
+                y_cen = int(tcen_y) - tcen_y
+                plt.plot(x_cen,y_cen,'wx',markersize=15,alpha=0.5)
+                circle = plt.Circle((x_cen,y_cen),min_ap,color='black',fill=False)
+                circle2 = plt.Circle((x_cen,y_cen),max_ap,color='black',fill=False)
+                circle3 = plt.Circle((x_cen,y_cen),aperture,color='white',fill=False)
+                plt.gca().add_artist(circle)
+                plt.gca().add_artist(circle2)
+                plt.gca().add_artist(circle3)
+
+                # Now plot centroids of extracted companion stars within phot_radius:
+                for j in range(len(idx_comparison)):
+                        idx_c = idx_comparison[j]
+                        cen_x,cen_y,tname = all_comp_cen_x[j,i],all_comp_cen_y[j,i],all_comp_cen_name[j]
+                        xc_cen = (cen_x - tcen_x)
+                        yc_cen = -(cen_y - tcen_y)
+                        plt.plot(xc_cen,yc_cen,'wx',markersize=15,alpha=0.5)
+                        #plt.text(xc_cen,yc_cen,tname,color='white')
+                        circle3 = plt.Circle((xc_cen,yc_cen),aperture,color='white',fill=False)
+                        plt.gca().add_artist(circle3)
+                plt.xlabel('Pixels from target')
+                plt.ylabel('Pixels from target')
+                circle3 = plt.Circle((0,0),phot_radius*scale,color='white',linewidth=3,linestyle='--',fill=False) 
+                plt.text(phot_radius*scale*0.8,phot_radius*scale*0.8,"2'",color='white',fontsize=20)
+                plt.gca().add_artist(circle3)
+                plt.title('Target (center) + Extracted sources (approx. pixel scale: '+str(np.round((1./scale)*60.,2))+' arcsec/pixel)')
+                plt.tight_layout()
+                if not os.path.exists(out_dir+'/'+object_name+'/'+frame_name.split('/')[-1]+'_FULL.png'):
+                    plt.savefig(out_dir+'/'+object_name+'/'+frame_name.split('/')[-1]+'_FULL.png')
+                plt.close()
+
 def plot_images(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frames,idx_frames,half_size = 100):
 	def plot_im(d,cen_x,cen_y,frame_name,object_name):
                 d = pyfits.getdata(frame_name)
@@ -401,6 +506,7 @@ parser.add_argument('-minap',default = 5)
 parser.add_argument('-maxap',default = 25)
 parser.add_argument('-apstep',default = 1)
 parser.add_argument('-ncomp',default = 10)
+parser.add_argument('-phot_radius',default = 2)
 parser.add_argument('-forced_aperture',default = 15)
 parser.add_argument('--force_aperture', dest='force_aperture', action='store_true')
 parser.set_defaults(force_aperture=False)
@@ -452,6 +558,7 @@ min_ap = int(args.minap)
 max_ap = int(args.maxap)
 forced_aperture = int(args.forced_aperture)
 ncomp = int(args.ncomp)
+phot_radius = np.double(args.phot_radius)
 #################################################
 
 # Convert target coordinates to degrees:
@@ -467,7 +574,10 @@ for i in range(len(data['frame_name'])):
     d,h = pyfits.getdata(frames,header=True)
     try:
         if h['SITE'] != '' and h['INSTRUME'] != '':
-            all_cameras[i] = 'sinistro'
+            if '0m4' in frames:
+                all_cameras[i] = 'sbig'
+            else:
+                all_cameras[i] = 'sinistro'
             #if h['INSTRUME'] in ['fl03','fl04','fl02','fl06']:
             #    all_cameras[i] = 'sinistro'
             #else:
@@ -498,6 +608,9 @@ all_ras,all_decs = data['data']['RA_degs'],data['data']['DEC_degs']
 # Search for the target:
 distance = np.sqrt((all_ras-target_ra)**2 + (all_decs-target_dec)**2)
 idx = (np.where(distance == np.min(distance))[0])[0]
+# Search for targets within phot_radius (the photometry for these will be extracted as well):
+idx_all_out = np.where( (distance<phot_radius/60.) & (distance != np.min(distance)))[0]
+
 # Search for closest stars in color to target star:
 target_hmag,target_jmag = data['data']['Hmag'][idx],data['data']['Jmag'][idx]
 colors = data['data']['Hmag']-data['data']['Jmag']
@@ -557,25 +670,43 @@ for site in sites:
                 relative_flux,relative_flux_err = super_comparison_detrend(data,idx,idx_comparison,aperture,all_idx = idx_frames)
                 save_photometry(times[idx_sort_times],relative_flux[idx_sort_times],relative_flux_err[idx_sort_times],\
                     foldername+cam+'/post_processing_outputs/',target_name = 'photometry_ap'+str(aperture)+'_pix')
-                mfilt = medfilt(relative_flux[idx_sort_times],median_window)
+                if len(idx_sort_times)<5:
+                    mfilt = np.median(relative_flux[idx_sort_times])
+                else:
+                    mfilt = medfilt(relative_flux[idx_sort_times],median_window)
                 precision[i] = get_sigma((relative_flux[idx_sort_times] - mfilt)*1e6)
+                if np.isnan(precision[i]):
+                    precision[i] = 9999.0
 
         idx_max_prec = np.where(precision==np.min(precision))[0][0]
         chosen_aperture = apertures_to_check[idx_max_prec]
         print '\t >> Best precision achieved at an aperture of ',chosen_aperture,'pixels'
         print '\t >> Precision achieved: ',precision[idx_max_prec],'ppm'
 
+    # Saving target image plots:
     if plt_images:
         plot_images(data,idx,idx_comparison,chosen_aperture,min_ap,max_ap,foldername+cam+'/',data['frame_name'][idx_frames],idx_frames)
+        plot_full_image(data,idx,idx_all_out,chosen_aperture,min_ap,max_ap,foldername+cam+'/',data['frame_name'][idx_frames],idx_frames,phot_radius=phot_radius)
 
     # Save and plot final LCs:
-    print '\t Getting final relative flux...'
+    print '\t Getting final relative flux for target...'
     relative_flux,relative_flux_err = super_comparison_detrend(data,idx,idx_comparison,chosen_aperture,plot_comps = all_plots,all_idx = idx_frames)
     median_flux = np.max([np.median(relative_flux[idx_sort_times][0:10]),np.median(relative_flux[idx_sort_times][-10:])])
     print '\t Saving...'
     save_photometry(times[idx_sort_times],relative_flux[idx_sort_times]/median_flux,relative_flux_err[idx_sort_times]/median_flux,\
-                    foldername+cam+'/',target_name = target_name,plot_data = True, title = target_name + ' on ' + foldername.split('/')[-3]+' at '+site+' ('+dome+')')
+                    foldername+cam+'/',target_name = target_name,plot_data = True, title = target_name + ' on ' + foldername.split('/')[-3]+' at \n '+site+' ('+dome+')')
 
+    plt.clf()
+    # Doing the same for targets within phot_radius: idx_all_out
+    print '\t Getting final relative fluxes for companion stars:'
+    os.mkdir(foldername+cam+'/companion_stars')
+    for idx_comp_out in idx_all_out:
+        crelative_flux,crelative_flux_err = super_comparison_detrend(data,idx_comp_out,idx_comparison,chosen_aperture,plot_comps = False,all_idx = idx_frames)
+        cmedian_flux = np.max([np.median(crelative_flux[idx_sort_times][0:10]),np.median(crelative_flux[idx_sort_times][-10:])]) 
+        save_photometry(times[idx_sort_times],crelative_flux[idx_sort_times]/cmedian_flux,crelative_flux_err[idx_sort_times]/cmedian_flux,\
+                    foldername+cam+'/companion_stars/',target_name = data['data']['IDs'][idx_comp_out],plot_data = True, title = data['data']['IDs'][idx_comp_out] + ' on ' \
+                    + foldername.split('/')[-3]+' at \n '+site+' ('+dome+')')
+        plt.clf()
     save_photometry_hs(data,idx,idx_comparison,chosen_aperture,min_ap,max_ap,idx_sort_times,foldername+cam+'/',target_name,band = band,all_idx = idx_frames)
 
     print '\t Done!\n'
@@ -587,4 +718,3 @@ for site in sites:
     for file_name in src_files:
         shutil.copy2(os.path.join(foldername+cam+'/LC/',file_name),foldername+cam+'/'+date+'/'+target_name+'/'+band+'/LC/')
     print '\t Done!\n'
-    plt.clf()

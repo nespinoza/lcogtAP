@@ -315,13 +315,19 @@ def get_general_coords(target,date):
 
 # Get user input:
 parserIO = argparse.ArgumentParser()
+# Which project the user wants to reduce data from:
 parserIO.add_argument('-project',default=None)
+# Check folders ndays ago:
 parserIO.add_argument('-ndays',default=7)
+# Aperture will be automatically generated for stars within phot_radius from the target (in arc-minutes). 
+# Default is 2 arc-minutes, which is a typically good value for TESS lightcurves:
+parserIO.add_argument('-phot_radius',default=2)
 args = parserIO.parse_args()
 
 # Get the project name (see the userdata.dat file):
 project = args.project
 ndays = int(args.ndays)
+phot_radius = np.double(args.phot_radius)
 
 # Check for which project the user whishes to download data from:
 fprojects = open('../userdata.dat','r')
@@ -446,7 +452,7 @@ for i in range(len(dates_raw)):
                         targetok = True
             # Assuming RA an DEC have been retrieved, run the post-processing algorithm:
             if targetok:
-              for ap in ['opt','5','15','20','30']:
+              for ap in ['opt','10','15','20','30']:
                 p = subprocess.Popen('echo $DISPLAY',stdout = subprocess.PIPE, \
                            stderr = subprocess.PIPE,shell = True)
                 p.wait()
@@ -454,11 +460,11 @@ for i in range(len(dates_raw)):
                 if ap == 'opt':
                     code = 'python transit_photometry.py -project '+project+' -datafolder '+\
                            dates_raw[i]+' -target_name '+target_name+' -band '+band+\
-                           ' -dome '+dome+' -ra "'+RA+'" -dec " '+DEC+'" -ncomp 10 --plt_images --autosaveLC'
+                           ' -dome '+dome+' -ra "'+RA+'" -dec " '+DEC+'" -ncomp 10 -phot_radius '+str(phot_radius)+' --plt_images --autosaveLC'
                 else:
                     code = 'python transit_photometry.py -project '+project+' -datafolder '+\
                            dates_raw[i]+' -target_name '+target_name+' -band '+band+\
-                           ' -dome '+dome+' -ra "'+RA+'" -dec " '+DEC+'" -ncomp 10 --plt_images --force_aperture -forced_aperture '+ap+' --autosaveLC'
+                           ' -dome '+dome+' -ra "'+RA+'" -dec " '+DEC+'" -ncomp 10 -phot_radius '+str(phot_radius)+' --plt_images --force_aperture -forced_aperture '+ap+' --autosaveLC'
                 print code
                 p = subprocess.Popen(code,stdout = subprocess.PIPE, \
                            stderr = subprocess.PIPE,shell = True)
@@ -483,8 +489,7 @@ for i in range(len(dates_raw)):
                     mymail = Bimail('LCOGT DR (project: '+project+'): '+target_name+' on ' +dates_raw[i]+' Aperture: '+ap, emails_to_send)
                     mymail.htmladd('Data reduction was a SUCCESS! Attached is the lightcurve data.')
                     out_folder = out_folder+'_'+ap
-                    real_camera = 'sinistro' # from now on, all LCOGT data comes from sinistro cameras
-                    imgs = glob.glob(out_folder+'/target/*')
+                    imgs = glob.glob(out_folder+'/target_full/*')
                     d,h = pyfits.getdata(data_folder+'LCOGT/raw/'+dates_raw[i]+'/'+(imgs[0].split('/')[-1]).split('.')[0]+'.fits',header=True)
                     mymail.htmladd('Camera: '+camera)
                     mymail.htmladd('Observing site: '+h['SITE'])
@@ -498,10 +503,16 @@ for i in range(len(dates_raw)):
                         mymail.addattach([imgs[0]])
                         mymail.addattach([imgs[1]])
                     else:
-                        mymail.addattach([imgs[0]])
+                        mymail.addattach([imgs[0]])                    
+                    cwd = os.getcwd()
+                    os.chdir(out_folder)
+                    os.system('pwd')
+                    os.system('tar -zcvf outputs.tar.gz LC companion_stars')
+                    os.chdir(cwd)
                     mymail.addattach([out_folder+'/'+target_name+'.dat'])
                     mymail.addattach([out_folder+'/'+target_name+'.pdf'])
                     mymail.addattach([out_folder+'/LC/'+target_name+'.epdlc'])
+                    mymail.addattach([out_folder+'/outputs.tar.gz'])
                     mymail.send()
               shutil.move(out_folder[:-3]+'_opt',data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/sinistro')
             else:
