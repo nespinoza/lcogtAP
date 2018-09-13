@@ -462,19 +462,21 @@ for i in range(len(dates_raw)):
                     targetok = False
                     emails_to_send = emailreceiver
                 else:
-                    emails_to_send = emailreceiver + extra_emails
-                try:
-                    RA,DEC = get_epic_coords(target_name)
-                    RA = ':'.join(RA.split())
-                    DEC = ':'.join(DEC.split())
-                    print '\t Found RA and DEC:',RA,DEC
                     targetok = True
-                except:
-                    RA,DEC = get_general_coords(target_name,dates_raw[i])
-                    if RA == 'NoneFound':
-                        targetok = False
-                    else:
-                        targetok = True
+                    emails_to_send = emailreceiver + extra_emails
+                if not targetok:
+                    try:
+                        RA,DEC = get_epic_coords(target_name)
+                        RA = ':'.join(RA.split())
+                        DEC = ':'.join(DEC.split())
+                        print '\t Found RA and DEC:',RA,DEC
+                       targetok = True
+                    except:
+                        RA,DEC = get_general_coords(target_name,dates_raw[i])
+                        if RA == 'NoneFound':
+                            targetok = False
+                        else:
+                            targetok = True
             # Assuming RA an DEC have been retrieved, run the post-processing algorithm:
             if targetok:
               for ap in ['opt','10','15','20','30']:
