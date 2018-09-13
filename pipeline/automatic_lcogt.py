@@ -313,6 +313,24 @@ def get_general_coords(target,date):
         coords_file.close()
         return 'NoneFound','NoneFound'
 
+def manual_coords2(target,date,iproject):
+    coords_file = open('../manual_object_coords2.dat','r')
+    # Correct, eg, 'TIC 34234234' for 'TIC23423432'
+    target = ''.join(target.split())
+    # Correct, eg, 'TIC233243.01' for 'TIC233243' which is the real star name:
+    target = target.split('.')[0]
+    while True:
+        line = coords_file.readline()
+        if line != '':
+            name,project,emails,ra,dec = line.split(';')
+            if ('TIC'+name.lower() == target.lower() or 'TIC'+name.lower() == 'TIC'+target.lower()) and iproject == project:
+                coords_file.close()
+                return ra,dec,emails.split(',')
+        else:
+            break
+    coords_file.close()
+    return 'NoneFound','NoneFound','NoneFound'
+
 # Get user input:
 parserIO = argparse.ArgumentParser()
 # Which project the user wants to reduce data from:
@@ -438,6 +456,13 @@ for i in range(len(dates_raw)):
                     dome = splitted_name[-1]
                     band = splitted_name[-2]
                     target_name = '-'.join(splitted_name[:-2])
+                # Try new manualcoords:
+                RA,DEC,extra_emails = manual_coords2(target_name,dates_raw[i],project)
+                if RA == 'NoneFound':
+                    targetok = False
+                    emails_to_send = emailreceiver
+                else:
+                    emails_to_send = emailreceiver + extra_emails
                 try:
                     RA,DEC = get_epic_coords(target_name)
                     RA = ':'.join(RA.split())
