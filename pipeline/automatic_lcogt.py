@@ -319,11 +319,14 @@ def manual_coords2(target,date,iproject):
     target = ''.join(target.split())
     # Correct, eg, 'TIC233243.01' for 'TIC233243' which is the real star name:
     target = target.split('.')[0]
+    # Correct spaces in input project:
+    iproject = ''.join(iproject.split())
     while True:
         line = coords_file.readline()
         if line != '':
             name,project,emails,ra,dec = line.split(';')
-            if ('TIC'+name.lower() == target.lower() or 'TIC'+name.lower() == 'TIC'+target.lower()) and iproject == project:
+            name = ''.join(name.split())
+            if ('tic'+name.lower() == target.lower() or 'tic'+name.lower() == 'tic'+target.lower()) and iproject == project:
                 coords_file.close()
                 return ra,dec,emails.split(',')
         else:
