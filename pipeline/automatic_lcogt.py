@@ -489,11 +489,11 @@ for i in range(len(dates_raw)):
                 out, err = p.communicate()
                 if ap == 'opt':
                     code = 'python transit_photometry.py -project '+project+' -datafolder '+\
-                           dates_raw[i]+' -target_name '+target_name+' -band '+band+\
+                           dates_raw[i]+' -target_name "'+target_name+'" -band '+band+\
                            ' -dome '+dome+' -ra "'+RA+'" -dec " '+DEC+'" -ncomp 10 -phot_radius '+str(phot_radius)+' --plt_images --autosaveLC'
                 else:
                     code = 'python transit_photometry.py -project '+project+' -datafolder '+\
-                           dates_raw[i]+' -target_name '+target_name+' -band '+band+\
+                           dates_raw[i]+' -target_name "'+target_name+'" -band '+band+\
                            ' -dome '+dome+' -ra "'+RA+'" -dec " '+DEC+'" -ncomp 10 -phot_radius '+str(phot_radius)+' --plt_images --force_aperture -forced_aperture '+ap+' --autosaveLC'
                 print code
                 p = subprocess.Popen(code,stdout = subprocess.PIPE, \
