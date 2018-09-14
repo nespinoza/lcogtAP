@@ -376,8 +376,8 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                         scomp_RA = data['data']['RA_degs'][i]
                         scomp_DEC = data['data']['DEC_degs'][i]
                 except:
-                        scomp_cen_x = data['data']['target_star_'+str(i)]['centroids_x'][i]
-                        scomp_cen_y = data['data']['target_star_'+str(i)]['centroids_y'][i]
+                        scomp_cen_x = data['data']['target_star_'+str(i)]['centroids_x'][idx_frames]
+                        scomp_cen_y = data['data']['target_star_'+str(i)]['centroids_y'][idx_frames]
                         scomp_RA = data['data']['RA_degs'][i]
                         scomp_DEC = data['data']['DEC_degs'][i]
                 if i==0:
