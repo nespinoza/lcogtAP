@@ -361,18 +361,47 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                         all_comp_RA = np.vstack((all_comp_RA,comp_RA))
                         all_comp_DEC = np.vstack((all_comp_DEC,comp_DEC))
 
-        # If no companion stars in 2MASS, don't plot them:
+        # If no companion stars in 2MASS, estimate scale from other stars:
         if len(idx_comparison) != 0:
             # Calculate (local) pixel scale:
             distances_x = all_comp_cen_x - target_cen_x
             distances_y = all_comp_cen_y - target_cen_y
             distances_RA = (all_comp_RA - target_RA)*60.
             distances_DEC = (all_comp_DEC - target_DEC)*60.
-            xdist = np.median(distances_x,axis=1)
-            ydist = np.median(distances_y,axis=1)
-            scale = np.median(np.sqrt(xdist**2 + ydist**2)/np.sqrt(distances_RA**2 + distances_DEC**2))
+        else:
+            for i in range(10):
+                try:
+                        scomp_cen_x = data['data']['star_'+str(i)]['centroids_x'][idx_frames]
+                        scomp_cen_y = data['data']['star_'+str(i)]['centroids_y'][idx_frames]
+                        scomp_RA = data['data']['RA_degs'][i]
+                        scomp_DEC = data['data']['DEC_degs'][i]
+                except:
+                        scomp_cen_x = data['data']['target_star_'+str(i)]['centroids_x'][i]
+                        scomp_cen_y = data['data']['target_star_'+str(i)]['centroids_y'][i]
+                        scomp_RA = data['data']['RA_degs'][i]
+                        scomp_DEC = data['data']['DEC_degs'][i]
+                if i==0:
+                        sall_comp_cen_x = scomp_cen_x
+                        sall_comp_cen_y = scomp_cen_y
+                        sall_comp_cen_name = data['data']['IDs'][i]
+                        sall_comp_RA = scomp_RA
+                        sall_comp_DEC = scomp_DEC
+                else:
+                        sall_comp_cen_x = np.vstack((sall_comp_cen_x,scomp_cen_x))
+                        sall_comp_cen_y = np.vstack((sall_comp_cen_y,scomp_cen_y))
+                        sall_comp_cen_name = np.vstack((sall_comp_cen_name,data['data']['IDs'][i]))
+                        sall_comp_RA = np.vstack((sall_comp_RA,scomp_RA))
+                        sall_comp_DEC = np.vstack((sall_comp_DEC,scomp_DEC))     
+            distances_x = sall_comp_cen_x - target_cen_x
+            distances_y = sall_comp_cen_y - target_cen_y
+            distances_RA = (sall_comp_RA - target_RA)*60.
+            distances_DEC = (sall_comp_DEC - target_DEC)*60.           
+ 
+        xdist = np.median(distances_x,axis=1)
+        ydist = np.median(distances_y,axis=1)
+        scale = np.median(np.sqrt(xdist**2 + ydist**2)/np.sqrt(distances_RA**2 + distances_DEC**2))
 
-            print 'Estimated scale:',(1./scale)*60.,' arcsec/pixel'
+        print 'Estimated scale:',(1./scale)*60.,' arcsec/pixel'
 
         # Now image:
         nframes = len(frames)
@@ -409,7 +438,6 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                         xc_cen = (cen_x - tcen_x)
                         yc_cen = -(cen_y - tcen_y)
                         plt.plot(xc_cen,yc_cen,'wx',markersize=15,alpha=0.5)
-                        #plt.text(xc_cen,yc_cen,tname,color='white')
                         circle3 = plt.Circle((xc_cen,yc_cen),aperture,color='white',fill=False)
                         plt.gca().add_artist(circle3)
                 plt.xlabel('Pixels from target')
@@ -417,10 +445,7 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                 circle3 = plt.Circle((0,0),phot_radius*scale,color='white',linewidth=3,linestyle='--',fill=False) 
                 plt.text(phot_radius*scale*0.8,phot_radius*scale*0.8,"2'",color='white',fontsize=20)
                 plt.gca().add_artist(circle3)
-                if len(idx_comparison) != 0:
-                    plt.title('Target (center) + Extracted sources (approx. pixel scale: '+str(np.round((1./scale)*60.,2))+' arcsec/pixel)')
-                else:
-                    plt.title('Target (center) + Extracted sources')
+                plt.title('Target (center) + Extracted sources (approx. pixel scale: '+str(np.round((1./scale)*60.,2))+' arcsec/pixel)')
                 plt.tight_layout()
                 if not os.path.exists(out_dir+'/'+object_name+'/'+frame_name.split('/')[-1]+'_FULL.png'):
                     plt.savefig(out_dir+'/'+object_name+'/'+frame_name.split('/')[-1]+'_FULL.png')
