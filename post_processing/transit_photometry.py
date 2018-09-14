@@ -372,7 +372,7 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
             ydist = np.median(distances_y,axis=1)
             scale = np.median(np.sqrt(xdist**2 + ydist**2)/np.sqrt(distances_RA**2 + distances_DEC**2))
 
-        print 'Estimated scale:',(1./scale)*60.,' arcsec/pixel'
+            print 'Estimated scale:',(1./scale)*60.,' arcsec/pixel'
 
         # Now image:
         nframes = len(frames)
