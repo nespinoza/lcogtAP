@@ -335,7 +335,7 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                 target_cen_y = data['data']['target_star_'+str(idx)]['centroids_y'][idx_frames]
                 print 'Target:','target_star_'+str(idx)
 
-        # Same for the comparison stars:
+        # Same for the companion stars, if any:
         for i in range(len(idx_comparison)):
                 idx_c = idx_comparison[i]
                 try:
@@ -361,16 +361,19 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                         all_comp_RA = np.vstack((all_comp_RA,comp_RA))
                         all_comp_DEC = np.vstack((all_comp_DEC,comp_DEC))
 
-        # Calculate (local) pixel scale:
-        distances_x = all_comp_cen_x - target_cen_x
-        distances_y = all_comp_cen_y - target_cen_y
-        distances_RA = (all_comp_RA - target_RA)*60.
-        distances_DEC = (all_comp_DEC - target_DEC)*60.
-        xdist = np.median(distances_x,axis=1)
-        ydist = np.median(distances_y,axis=1)
-        scale = np.median(np.sqrt(xdist**2 + ydist**2)/np.sqrt(distances_RA**2 + distances_DEC**2))
+        # If no companion stars in 2MASS, don't plot them:
+        if len(idx_comparison) != 0:
+            # Calculate (local) pixel scale:
+            distances_x = all_comp_cen_x - target_cen_x
+            distances_y = all_comp_cen_y - target_cen_y
+            distances_RA = (all_comp_RA - target_RA)*60.
+            distances_DEC = (all_comp_DEC - target_DEC)*60.
+            xdist = np.median(distances_x,axis=1)
+            ydist = np.median(distances_y,axis=1)
+            scale = np.median(np.sqrt(xdist**2 + ydist**2)/np.sqrt(distances_RA**2 + distances_DEC**2))
 
         print 'Estimated scale:',(1./scale)*60.,' arcsec/pixel'
+
         # Now image:
         nframes = len(frames)
         for i in range(nframes):
