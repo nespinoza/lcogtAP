@@ -16,6 +16,10 @@ plt.style.use('ggplot')
 from scipy.signal import medfilt
 from matplotlib import ticker
 
+def get_spherical_distance(ra1,dec1,ra2,dec2):
+    return (180./np.pi)*np.arccos(np.cos((90. - dec1)*(np.pi/180.))*np.cos((90. - dec2)*(np.pi/180.)) +\
+                     np.sin((90. - dec1)*(np.pi/180.))*np.sin((90. - dec2)*(np.pi/180.))*np.cos((ra1 - ra2)*(np.pi/180.))  )
+
 def CoordsToDecimal(coords, hours = False):
         if hours:
            hh,mm,ss = coords.split(':')
@@ -366,8 +370,7 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
             # Calculate (local) pixel scale:
             distances_x = all_comp_cen_x - target_cen_x
             distances_y = all_comp_cen_y - target_cen_y
-            distances_RA = (all_comp_RA - target_RA)*60.
-            distances_DEC = (all_comp_DEC - target_DEC)*60.
+            angular_distance = get_spherical_distance(all_comp_RA,all_comp_DEC,target_RA,target_DEC)*60. # in arcmin
         else:
             for i in range(10):
                 try:
@@ -394,12 +397,11 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                         sall_comp_DEC = np.vstack((sall_comp_DEC,scomp_DEC))     
             distances_x = sall_comp_cen_x - target_cen_x
             distances_y = sall_comp_cen_y - target_cen_y
-            distances_RA = (sall_comp_RA - target_RA)*60.
-            distances_DEC = (sall_comp_DEC - target_DEC)*60.           
+            angular_distance = get_spherical_distance(sall_comp_RA,sall_comp_DEC,target_RA,target_DEC)*60. # in arcmin
  
         xdist = np.median(distances_x,axis=1)
         ydist = np.median(distances_y,axis=1)
-        scale = np.median(np.sqrt(xdist**2 + ydist**2)/np.sqrt(distances_RA**2 + distances_DEC**2))
+        scale = np.median(np.sqrt(xdist**2 + ydist**2)/angular_distance
 
         print 'Estimated scale:',(1./scale)*60.,' arcsec/pixel'
 
@@ -637,11 +639,18 @@ print 'Observations taken from: ',sites
 # Get all the RAs and DECs of the objects:
 all_ras,all_decs = data['data']['RA_degs'],data['data']['DEC_degs']
 # Search for the target:
-distance = np.sqrt((all_ras-target_ra)**2 + (all_decs-target_dec)**2)
-idx = (np.where(distance == np.min(distance))[0])[0]
-# Search for targets within phot_radius (the photometry for these will be extracted as well):
-idx_all_out = np.where( (distance<phot_radius/60.) & (distance != np.min(distance)))[0]
+e_distance = np.sqrt((all_ras-target_ra)**2 + (all_decs-target_dec)**2)
+idx = (np.where(e_distance == np.min(e_distance))[0])[0]
+# Search for targets within phot_radius (the photometry for these will be extracted as well). For this, calculate *spherical* 
+# distance from the target, which is what we really want now:
+distance = (180./np.pi)*np.arccos(np.cos((90. - all_decs)*(np.pi/180.))*np.cos((90. - target_dec)*(np.pi/180.)) +\
+                     np.sin((90. - all_ra)*(np.pi/180.))*np.sin((90. - target_ra)*(np.pi/180.))*np.cos((all_ra - target_ra)*(np.pi/180.))  )
 
+# Get all stars within phot_radius from the target:
+idx_all_out = np.where( (distance<phot_radius/60.) & (e_distance != np.min(e_distance)))[0]
+print 'Extracting photometry for target and the following comparison stars:'
+for i in idx_all_out:
+    print data['data']['IDs'][i],' RA,DEC:',data['data']['RA_degs'][i],data['data']['DEC_degs'][i],' distance to target (arcmin): ',distance[i]*60.
 # Search for closest stars in color to target star:
 target_hmag,target_jmag = data['data']['Hmag'][idx],data['data']['Jmag'][idx]
 colors = data['data']['Hmag']-data['data']['Jmag']
