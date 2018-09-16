@@ -328,11 +328,11 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
         This is a modified copy of the next function, used to plot the target with the companion stars whose photometry was extracted:
         """
         # Get the centroids of the target:
+        target_RA = data['data']['RA_degs'][idx]
+        target_DEC = data['data']['DEC_degs'][idx]
         try:
                 target_cen_x = data['data']['star_'+str(idx)]['centroids_x'][idx_frames]
                 target_cen_y = data['data']['star_'+str(idx)]['centroids_y'][idx_frames]
-                target_RA = data['data']['RA_degs'][idx]
-                target_DEC = data['data']['DEC_degs'][idx]
                 print 'Target:','star_'+str(idx)
         except:
                 target_cen_x = data['data']['target_star_'+str(idx)]['centroids_x'][idx_frames]
@@ -401,7 +401,7 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
  
         xdist = np.median(distances_x,axis=1)
         ydist = np.median(distances_y,axis=1)
-        scale = np.median(np.sqrt(xdist**2 + ydist**2)/angular_distance
+        scale = np.median(np.sqrt(xdist**2 + ydist**2)/angular_distance)
 
         print 'Estimated scale:',(1./scale)*60.,' arcsec/pixel'
 
@@ -444,7 +444,7 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                         plt.gca().add_artist(circle3)
                 plt.xlabel('Pixels from target')
                 plt.ylabel('Pixels from target')
-                circle3 = plt.Circle((0,0),phot_radius*scale,color='white',linewidth=3,linestyle='--',fill=False) 
+                circle3 = plt.Circle((0,0),phot_radius*scale,color='white',linewidth=3,fill=False) 
                 plt.text(phot_radius*scale*0.8,phot_radius*scale*0.8,"2'",color='white',fontsize=20)
                 plt.gca().add_artist(circle3)
                 plt.title('Target (center) + Extracted sources (approx. pixel scale: '+str(np.round((1./scale)*60.,2))+' arcsec/pixel)')
@@ -643,8 +643,7 @@ e_distance = np.sqrt((all_ras-target_ra)**2 + (all_decs-target_dec)**2)
 idx = (np.where(e_distance == np.min(e_distance))[0])[0]
 # Search for targets within phot_radius (the photometry for these will be extracted as well). For this, calculate *spherical* 
 # distance from the target, which is what we really want now:
-distance = (180./np.pi)*np.arccos(np.cos((90. - all_decs)*(np.pi/180.))*np.cos((90. - target_dec)*(np.pi/180.)) +\
-                     np.sin((90. - all_ra)*(np.pi/180.))*np.sin((90. - target_ra)*(np.pi/180.))*np.cos((all_ra - target_ra)*(np.pi/180.))  )
+distance = get_spherical_distance(all_ras,all_decs,target_ra,target_dec)
 
 # Get all stars within phot_radius from the target:
 idx_all_out = np.where( (distance<phot_radius/60.) & (e_distance != np.min(e_distance)))[0]
