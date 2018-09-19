@@ -447,7 +447,7 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                 circle3 = plt.Circle((0,0),phot_radius*scale,color='white',linewidth=3,fill=False) 
                 plt.text(phot_radius*scale*0.8,phot_radius*scale*0.8,"2'",color='white',fontsize=20)
                 plt.gca().add_artist(circle3)
-                plt.title('Target (center) + Extracted sources (approx. pixel scale: '+str(np.round((1./scale)*60.,2))+' arcsec/pixel)')
+                plt.title('Target (center) + Extracted sources (approx. pixel scale: '+str(np.round((1./scale)*60.,2))+' arcsec/pixel)  | Aperture: '+str(aperture)+' pixels')
                 plt.tight_layout()
                 if not os.path.exists(out_dir+'/'+object_name+'/'+frame_name.split('/')[-1]+'_FULL.png'):
                     plt.savefig(out_dir+'/'+object_name+'/'+frame_name.split('/')[-1]+'_FULL.png')
