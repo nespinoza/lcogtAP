@@ -473,7 +473,7 @@ for i in range(len(dates_raw)):
                         RA = ':'.join(RA.split())
                         DEC = ':'.join(DEC.split())
                         print '\t Found RA and DEC:',RA,DEC
-                       targetok = True
+                        targetok = True
                     except:
                         RA,DEC = get_general_coords(target_name,dates_raw[i])
                         if RA == 'NoneFound':
