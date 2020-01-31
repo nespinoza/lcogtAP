@@ -94,6 +94,10 @@ print ('\t ###################################')
 print ('\t Pre-processing....')
 print ('\t ###################################')
 
+# Check if general reduced folder exists, if not make it
+if not os.path.exists(out_red_folder+'/'):
+        os.mkdir(out_red_folder+'/')
+# Check if reduced folder for the night exists, if not make it
 if not os.path.exists(out_red_folder+'/'+datafolder+'/'):
         os.mkdir(out_red_folder+'/'+datafolder+'/')
 
