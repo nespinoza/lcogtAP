@@ -352,7 +352,9 @@ phot_radius = np.double(args.phot_radius)
 
 # Check for which project the user whishes to download data from:
 fprojects = open('../userdata.dat','r')
-while True:
+# initialize check
+project_exists = True
+while project_exists:
     line = fprojects.readline()
     if line != '':
         if line[0] != '#':
@@ -364,6 +366,7 @@ while True:
     else:
         print '\t > Project '+project+' is not on the list of saved projects. '
         print '\t   Please associate it on the userdata.dat file.'
+        project_exists = False
 
 data_folder = cf
 
