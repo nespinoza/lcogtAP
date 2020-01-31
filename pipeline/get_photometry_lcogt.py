@@ -71,8 +71,8 @@ while True:
         print '\t > Project '+project+' is not on the list of saved projects. '
         print '\t   Please associate it on the userdata.dat file.'
 
-out_raw_folder = cf + 'LCOGT/raw/'
-out_red_folder = cf + 'LCOGT/red/'
+out_raw_folder = cf + 'LCOGT/raw'
+out_red_folder = cf + 'LCOGT/red'
 
 # Define apertures for aperture photometry:
 min_aperture = int(args.minap)
