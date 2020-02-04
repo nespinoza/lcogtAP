@@ -18,6 +18,9 @@ This code makes use of the following python libraries:
     + PhotUtils (http://photutils.readthedocs.io/).
     + Astroquery (https://astroquery.readthedocs.io/en/latest/).
     + funpack (https://heasarc.gsfc.nasa.gov/fitsio/fpack/).
+    + matplotlib.
+    + jdcal.
+    + ephem.
 
 All of them are open source and can be easily installed in any machine. 
 
