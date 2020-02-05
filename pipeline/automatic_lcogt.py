@@ -446,7 +446,7 @@ for i in range(len(dates_raw)):
                     RA,DEC = get_general_coords(target_name,dates_raw[i])
                     if RA == 'NoneFound':
                         targetok = False
-                        print '\t RA and DEC obtention failed!'
+                        print '\t Simbad RA and DEC obtention failed!'
                     else:
                         targetok = True
             else:
@@ -467,9 +467,11 @@ for i in range(len(dates_raw)):
                 if RA == 'NoneFound':
                     targetok = False
                     emails_to_send = emailreceiver
+                    print '\t manual RA and DEC obtention failed!'
                 else:
                     targetok = True
                     emails_to_send = emailreceiver + extra_emails
+                    print '\t Found RA and DEC:',RA,DEC
                 if not targetok:
                     try:
                         RA,DEC = get_epic_coords(target_name)
@@ -481,8 +483,10 @@ for i in range(len(dates_raw)):
                         RA,DEC = get_general_coords(target_name,dates_raw[i])
                         if RA == 'NoneFound':
                             targetok = False
+                            print '\t EPIC RA and DEC obtention failed!'
                         else:
                             targetok = True
+                            print '\t Found RA and DEC:',RA,DEC
             # Assuming RA an DEC have been retrieved, run the post-processing algorithm:
             if targetok:
               for ap in ['opt','10','15','20','30']:
