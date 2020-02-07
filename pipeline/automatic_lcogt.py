@@ -505,7 +505,13 @@ for i in range(len(dates_raw)):
                 print code
                 p = subprocess.Popen(code,stdout = subprocess.PIPE, \
                            stderr = subprocess.PIPE,shell = True)
-                p.wait()
+                while True:
+                    output = p.stdout.readline()
+                    if output == '' and p.poll() is not None:
+                        break
+                    if output:
+                        print output.strip()
+                print p.poll()
                 out = glob.glob(data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/*')
                 for ii in range(len(out)):
                        if out[ii].split('/')[-1] == 'sinistro':
