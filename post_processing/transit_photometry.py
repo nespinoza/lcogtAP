@@ -56,7 +56,14 @@ def get_super_comp(all_comp_fluxes,all_comp_fluxes_err):
                 data_err = all_comp_fluxes_err[:,i]
                 med_data = np.median(data)
                 sigma = get_sigma(data)
+                sigma_error = get_sigma(data_err)
+                error_limit = np.median(data_err) + 5*sigma_error
+                #print(data_err, sigma_error, error_limit)
+                #print(sigma)
+                #print(data<med_data+5*sigma)
+                #print(data_err<error_limit)
                 idx = np.where((data<med_data+5*sigma)&(data>med_data-5*sigma)&\
+                               #(data_err<error_limit)&\
                                (~np.isnan(data))&(~np.isnan(data_err)))[0]
 
                 if len(idx) <= 3:
@@ -440,6 +447,9 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                         xc_cen = (cen_x - tcen_x)
                         yc_cen = -(cen_y - tcen_y)
                         plt.plot(xc_cen,yc_cen,'wx',markersize=15,alpha=0.5)
+                        #if data['data']['IDs'][idx_c]=='07455881-6152556':
+                        print(str(idx_c), data['data']['IDs'][idx_c]) 
+                        plt.text(xc_cen,yc_cen,str(idx_c))
                         circle3 = plt.Circle((xc_cen,yc_cen),aperture,color='white',fill=False)
                         plt.gca().add_artist(circle3)
                 plt.xlabel('Pixels from target')
