@@ -17,6 +17,11 @@ import ephem as E
 import jdcal
 from math import modf
 
+#Donuts
+from donuts import Donuts
+# add switch - TODO make it an input
+do_donuts = True
+
 # Use for UTC -> BJD conversion:
 import dateutil
 import matplotlib.dates as mdates
@@ -32,6 +37,15 @@ np.seterr(divide='ignore', invalid='ignore')
 
 # Define style of plotting (ggplot is nicer):
 plt.style.use('ggplot')
+
+def check_target(ras,decs,idx, max_comp_dist = 15):
+    distances = np.sqrt((ras[idx]-ras)**2 + \
+                       (decs[idx]-decs)**2)
+    idx_dist = np.argsort(distances)
+    comp_dist = distances[idx_dist[1]]
+    if comp_dist < max_comp_dist*(1./3600.):
+        return False
+    return True
 
 def read_setupfile():
     fin = open('../setup.dat','r')
@@ -102,6 +116,7 @@ fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
 
 # Define astrometry source directory:
 astrometry_directory = astrometry_folder # '/data/astrometry/bin/'
+print(astrometry_directory)
 
 def date_format(year,month,day,hour,minute,second):
         def fn(number):
@@ -264,10 +279,60 @@ def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y
     # Check which ras and decs have valid coordinates inside the first image. 
     # Save only those as valid objects for photometry:
     x,y = SkyToPix(h,all_ra,all_dec)
-    idx = []
-    for i in range(len(x)):
-        if x[i]>0 and x[i]<x_max and y[i]>0 and y[i]<y_max:
-            idx.append(i)
+    #idx = []
+    #for i in range(len(x)):
+    #    if x[i]>0 and x[i]<x_max and y[i]>0 and y[i]<y_max:
+    #        idx.append(i)
+
+    refcen = []
+    #tarfet_ra = None
+    if target_ra != None and target_dec != None:
+	    #NUMB = len(np.where(all_j<13)[0])
+	    ncomp = 100
+	    distance = np.sqrt((np.array(all_ra)-target_ra)**2 + (np.array(all_dec)-target_dec)**2)
+	    IS =  np.argsort(distance)
+	    idx = (np.where(distance == np.min(distance))[0])[0]
+	    
+	    IC = np.where((distance < 30./3600.) & (all_j - all_j[idx] < 5.) & (np.arange(len(all_ra)) != idx))[0]
+	    print 'target star:', idx
+	    print 'close companions:', len(IC), IC
+	    # Search for closest stars in color to target star:
+	    target_hmag,target_jmag = float(np.array(all_h)[idx]),float(np.array(all_j)[idx])
+	    colors = np.array(all_h)-np.array(all_j)
+	    target_color = target_hmag-target_jmag
+	    distance = np.sqrt(((colors-target_color))**2. + (target_jmag-np.array(all_j))**2.)
+	    idx_distances = np.argsort(distance)
+	    idx_comparison = list(np.hstack((idx,IC)))
+	    refcen         = list(np.hstack((True,np.zeros(len(IC), dtype=bool))))
+	    # Select brightest stars whithin 2.5 of the targets star flux first:
+	    #print data['data'].keys()
+	    for i in idx_distances:
+	    	#print i
+	    	if not i in idx_comparison:
+	    	   if target_jmag - np.array(all_j)[i] < 2. and target_jmag - np.array(all_j)[i] > 0.:
+			if x[i]>0 and x[i]<x_max and y[i]>0 and y[i]<y_max and check_target(np.array(all_ra),np.array(all_dec),i):
+	    		    idx_comparison.append(i)
+                            refcen.append(True)
+	    	if len(idx_comparison)==ncomp:
+	    		break
+
+	    # Now select the faint end:
+	    for i in idx_distances:
+	            if not i in idx_comparison:
+			if x[i]>0 and x[i]<x_max and y[i]>0 and y[i]<y_max and check_target(np.array(all_ra),np.array(all_dec),i):
+			    idx_comparison.append(i)
+			    refcen.append(True)
+	            if len(idx_comparison)==ncomp:
+	                    break
+	    idx = idx_comparison
+    else:
+	    # Check which ras and decs have valid coordinates inside the first image. 
+	    # Save only those as valid objects for photometry:
+	    idx = []
+	    for i in range(len(x)):
+		if x[i]>0 and x[i]<x_max and y[i]>0 and y[i]<y_max:
+		    idx.append(i)
+                    refcen.append(True)
 
     # Create dictionary that will save all the data:
     master_dict = {}
@@ -424,13 +489,34 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
 	print 'ERROR: the selected observatory '+observatory+' is not supported.'
 	sys.exit()
 
+# Do donuts on first file
+# Deocpmress first if necessary
+    first_file = filenames[0]
+    print(fpack_folder)
+    print(first_file)
+    if first_file[-7:] == 'fits.fz':
+          p = subprocess.Popen(fpack_folder+'funpack '+first_file, stdout = subprocess.PIPE, \
+                                stderr = subprocess.PIPE, shell = True)
+          p.wait()
+          if(p.returncode != 0 and p.returncode != None):
+             print ('\t Funpack command failed. The error was:')
+             out, err = p.communicate()
+             print (err)
+             print ('\n\t Exiting...\n')
+             sys.exit()
+          first_file = first_file[:-3]
+    if do_donuts:
+        don=Donuts(refimage=first_file,image_ext=0,overscan_width=0,prescan_width=0,\
+                   border=64,normalise=True,exposure='EXPTIME',\
+                   subtract_bkg=False,ntiles=16)
+    print('donut done')
     # Iterate through the files:
     first_time = True
     for f in filenames:
        # Try opening the fits file (might be corrupt):
        #print f
-       # Decompress file. Necessary because Astrometry cant handle this:
-       if f[-7:] == 'fits.fz':
+       # Decompress file if not decompressed. Necessary because Astrometry cant handle this:
+       if f[-7:] == 'fits.fz' and not os.path.exists(f[:-3]):
           print fpack_folder+'funpack '+f
           p = subprocess.Popen(fpack_folder+'funpack '+f, stdout = subprocess.PIPE, \
                                 stderr = subprocess.PIPE, shell = True)
@@ -441,6 +527,9 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
              print (err)
              print ('\n\t Exiting...\n')
              sys.exit()
+          f = f[:-3]
+       # if the decompressed file exists we just need to get the name
+       elif f[-7:] == 'fits.fz' and os.path.exists(f[:-3]):
           f = f[:-3]
        try:
             hdulist = fits.open(f)
@@ -454,6 +543,7 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
                fitsok = False
        if fitsok:
             h = hdulist[0].header
+            #print(h.keys())
             # Check filter:
             filter_ok = False
             if use_filter is None:
@@ -477,12 +567,57 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
 
                     # Now get data if astrometry worked or if no astrometry was needed on the frame:
                     if os.path.exists(filename+'.new') or not get_astrometry:
-                            # If get_astrometry flag is on, prefer the generated file instead of the original:
-                            if get_astrometry:
-                                print '\t Detected file '+filename+'.new'+'. Using it...'
-                                hdulist = fits.open(filename+'.new')
-                            else:
-                                hdulist = fits.open(filename+'.fits')
+#                            # If get_astrometry flag is on, prefer the generated file instead of the original:
+#                            if get_astrometry:
+#                                print '\t Detected file '+filename+'.new'+'. Using it...'
+#                                hdulist = fits.open(filename+'.new')
+#                            else:
+#                                hdulist = fits.open(filename+'.fits')
+#
+			    if (do_donuts and f == filenames[0]) or (do_donuts == False):
+		                    print ('\t Running astrometry on frame '+f+'...')
+				    t0ref = clocking_time.time()
+		                    run_astrometry(f,ra = ra_obj[0], dec = dec_obj[0], radius = 0.15,\
+		                                   scale_low = t_scale_low,scale_high = t_scale_high, \
+		                                   apply_gaussian_filter = gf_opt)
+				    print 'Astrometry took:', (clocking_time.time() -t0ref),'seconds'
+
+				    os.system('rm /tmp/*sanitized*')
+				    os.system('rm /tmp/*uncompressed*')
+		                    print ('\t ...done!')
+			
+		    if do_donuts and f == filenames[0]:
+			shftx,shfty = 0,0
+			
+
+		    elif do_donuts:
+				shift_result = don.measure_shift(f)
+				print shift_result.x.value,shift_result.y.value
+				shftx, shfty = shift_result.x.value,shift_result.y.value
+				if np.isnan(shftx):
+					shftx = 0.
+				if np.isnan(shfty):
+					shfty = 0.
+
+		    
+                    # Now get data if astrometry worked or if no astrometry was needed on the frame:
+                    if os.path.exists(filename+'.new') or not get_astrometry or do_donuts:
+			    t0ref = clocking_time.time()
+			    if do_donuts:
+				hdulisto = fits.open(filenames[0].split('.fits')[0]+'.new')
+				hdulist  = fits.open(filename+'.fits')
+                                ho = hdulisto[0].header
+                                datao = hdulisto[0].data
+			    else:
+				    
+		                # If get_astrometry flag is on, prefer the generated file instead of the original:
+		                if get_astrometry:
+		                    print '\t Detected file '+filename+'.new'+'. Using it...'
+		                    hdulist = fits.open(filename+'.new')
+		                else:
+		                    hdulist = fits.open(filename+'.fits')
+			        ho = hdulist[0].header
+                                datao = hdulist[0].data
 
                             # Load the data:
                             h = hdulist[0].header
@@ -494,10 +629,10 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
                                         date = ''.join(h['DATE-OBS'].split('T')[0].split('-'))
                                     else:
                                         date = ''.join(h['DATE-OBS'].split('-'))
-                                    central_ra,central_dec = [h['CRVAL1']],[h['CRVAL2']]#CoordsToDecimal([[h['RA'].split()[0],h['DEC'].split()[0]]])
+                                    central_ra,central_dec = [ho['CRVAL1']],[ho['CRVAL2']]#CoordsToDecimal([[h['RA'].split()[0],h['DEC'].split()[0]]])
                                     if not updating_dict:
                                         master_dict,all_names = get_dict(central_ra[0],central_dec[0],search_radius,ra_obj,dec_obj,\
-                                                                        h,data.shape[1],data.shape[0], R,date=date)
+                                                                        ho,data.shape[1],data.shape[0], R,date=date)
                                     else:
                                         all_data = master_dict['data'].keys()
                                         all_names_d = []
@@ -510,13 +645,22 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
                                         all_names = len(all_names_d)*[[]]
                                         for i in range(len(idxs)):
                                             all_names[i] = all_names_d[idxs[i]]
+
+
+				    if f == filenames[0]:
+					alines = open(filename.split('.fits')[0]+'_out.txt','r').readlines()
+					for aline in alines:
+					    print aline
+					    if 'simplexy: found ' in aline:
+						nsources = int(aline.split()[2])
+						master_dict['nstars'] = nsources
                                           
                                     if sitelong is None:
-                                        sitelong = h[long_h_name]
+                                        sitelong = ho[long_h_name]
                                     if sitelat is None:
-                                        sitelat = h[lat_h_name]
+                                        sitelat = ho[lat_h_name]
                                     if sitealt is None:
-                                        sitealt = h[alt_h_name]
+                                        sitealt = ho[alt_h_name]
                                     if longitude is None:
                                        #print sitelong,sitelat,sitealt
                                        longitude,latitude,elevation = site_data_2_string(sitelong,sitelat,sitealt)
@@ -577,18 +721,31 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
     
                             ########## OBTAINING THE FLUXES ###################
                             #master_dict['data']['RA_degs'][223],master_dict['data']['DEC_degs'][223] = 19.4620208,0.3419944
-                            x,y = SkyToPix(h,master_dict['data']['RA_degs'],master_dict['data']['DEC_degs'])
+                            x,y = SkyToPix(ho,master_dict['data']['RA_degs'],master_dict['data']['DEC_degs'])
+			    refcens = master_dict['data']['refcens']
+			    if do_donuts:
+				
+				print master_dict.keys()
+				if not 'donutsx' in master_dict.keys():
+				    master_dict['donutsx'] = np.array([-shftx])
+				    master_dict['donutsy'] = np.array([-shfty])
+				else:
+				    master_dict['donutsx'] = np.append(master_dict['donutsx'],-shftx)
+				    master_dict['donutsy'] = np.append(master_dict['donutsy'],-shfty)
+			        x = x - shftx
+				y = y - shfty
+                            #xo,yo = SkyToPix(ho,master_dict['data']['RA_degs'],master_dict['data']['DEC_degs'])                           
                             # Get fluxes of all the targets in the image for different apertures:
                             print ('\t Performing aperture photometry on objects...')
                             tic = clocking_time.time()
                             if type(egain) == type('str'):
                                fluxes,errors,x_ref,y_ref,bkg,bkg_err,fwhm = getAperturePhotometry(data,h,x,y,R,\
                                             all_names, frame_name = filename.split('/')[-1], \
-                                            out_dir = out_data_folder, GAIN = h[egain], saveplot = False, refine_centroids = refine_cen)
+                                            out_dir = out_data_folder, GAIN = h[egain], saveplot = False, refine_centroids = refcens,rawname=f.replace('RED','RAW').replace('calibrated_images/',''))
                             else:
                                fluxes,errors,x_ref,y_ref,bkg,bkg_err,fwhm = getAperturePhotometry(data,h,x,y,R,\
                                             all_names, frame_name = filename.split('/')[-1], \
-                                            out_dir = out_data_folder, GAIN = egain, saveplot = False, refine_centroids = refine_cen)
+                                            out_dir = out_data_folder, GAIN = egain, saveplot = False, refine_centroids = refcens,rawname=f.replace('RED','RAW').replace('calibrated_images/',''))
                             #print all_names[71]
                             #print 'Centroids, before:',x[71],y[71]
                             #print 'Centroids, after :',x_ref[71],y_ref[71]
@@ -814,7 +971,7 @@ fwhm_factor = 2.
 sigma_gf = 5.*fwhm_factor # 5.
 
 def getAperturePhotometry(d,h,x,y,R,target_names, frame_name = None, out_dir = None, saveplot = False, \
-        refine_centroids = False, half_size = 50, GAIN = 1.0, ncores = None):
+        refine_centroids = False, half_size = 50, GAIN = 1.0, ncores = None, rawname=''):
 
 
     global global_d,global_h,global_x,global_y,global_R,global_target_names,global_frame_name,\
@@ -847,9 +1004,34 @@ def getAperturePhotometry(d,h,x,y,R,target_names, frame_name = None, out_dir = N
     results = pool.map(getCentroidsAndFluxes, range(len(x)))
     pool.terminate()
 
+    maxf = np.zeros(len(x))
+    rawdata = pyfits.getdata(rawname)
+
     for i in range(len(x)):
         fluxes[i,:],fluxes_err[i,:],x_ref[i],y_ref[i],bkg[i],bkg_err[i],fwhm[i] = results[i]
-    return fluxes,fluxes_err,x_ref,y_ref,bkg,bkg_err,fwhm
+
+	#print x_ref[i],y_ref[i]
+	vec = global_d[int(x_ref[i])-7:int(x_ref[i])+7,int(y_ref[i])-7:int(y_ref[i])+7]
+	x1 = int(x_ref[i])-7
+	x2 = int(x_ref[i])+7
+	y1 = int(y_ref[i])-7
+	y2 = int(y_ref[i])+7
+	#print x1,x2,y1,y2
+	if x1 <0:
+		x1=0
+	if y1 <0:
+		y1=0
+	if x2 >= d.shape[0]:
+		x2 = d.shape[0]
+	if y2 >= d.shape[1]:
+		y2 = d.shape[1]
+	try:
+        	maxf[i] = np.max(rawdata[y1+8:y2+8,x1+50:x2+50])
+		#print rawname, y1+8,y2+8,x1+50,x2+50, maxf[i]
+	except:
+		maxf[i] = None
+
+    return fluxes,fluxes_err,x_ref,y_ref,bkg,bkg_err,fwhm, maxf
 
 def getCentroidsAndFluxes(i):
        fluxes_R = np.ones(len(global_R))*(-1)
@@ -874,7 +1056,7 @@ def getCentroidsAndFluxes(i):
            sky_sigma = np.ones(subimg.shape)*background_sigma
            x_cen = global_x[i] - x0
            y_cen = global_y[i] - y0
-           if global_refine_centroids:
+           if global_refine_centroids[i]:
                # If refine centroids is true, apply a gaussian filter 
                # first (in case image is defocused):
                gauss_filtered_subimg = gaussian_filter(subimg,sigma_gf)

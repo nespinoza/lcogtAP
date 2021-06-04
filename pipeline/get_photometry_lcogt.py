@@ -38,12 +38,12 @@ parser.add_argument('-apstep',default = 1)
 
 # Run astrometry on the images?
 parser.add_argument('--get_astrometry', dest='get_astrometry', action='store_true')
-parser.set_defaults(get_astrometry=False)
+parser.set_defaults(get_astrometry=True)
 
 # Generate gaussian-filtered version of the images? (sometimes good for astrometry of 
 # highly defocused targets)
 parser.add_argument('--gf_opt_astrometry', dest='gf_opt_astrometry', action='store_true')
-parser.set_defaults(gf_opt_astrometry=False)
+parser.set_defaults(gf_opt_astrometry=True)
 
 # Refine the centroids of each target?
 parser.add_argument('--ref_centers', dest='ref_centers', action='store_true')
