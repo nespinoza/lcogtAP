@@ -907,6 +907,13 @@ def run_astrometry(filename,ra = None, dec = None, radius = None, scale_low = 0.
         
 
     if (ra is not None) and (dec is not None) and (radius is not None):
+#                os.system(astrometry_directory+'solve-field --no-plots --overwrite --scale-units arcsecperpix --scale-low '+str(scale_low)+\
+#                ' --scale-high '+str(scale_high)+' --ra '+str(ra)+' --dec '+str(dec)+' --radius '+\
+#                str(radius)+' '+filename + ' --config /usr/local/astrometry/etc/astrometry.cfg > '+ filename.split('_gf.fits')[0]+'_out.txt')
+#    else:
+#	os.system(astrometry_directory+'solve-field --no-plots --overwrite --scale-units arcsecperpix --scale-low '+str(scale_low)+\
+#                ' --scale-high '+str(scale_high)+' '+filename)
+
         p = subprocess.Popen(astrometry_directory+'solve-field --no-plots --overwrite --scale-units arcsecperpix --scale-low '+str(scale_low)+\
                 ' --scale-high '+str(scale_high)+' --ra '+str(ra)+' --dec '+str(dec)+' --radius '+\
                 str(radius)+' '+filename, stdout = subprocess.PIPE, \
