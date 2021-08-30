@@ -413,6 +413,8 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
         print 'Estimated scale:',(1./scale)*60.,' arcsec/pixel'
 
         # Now image:
+	# save file for comp star numbers
+	f_compstar = open('comp_star_IDs.txt','w')
         nframes = len(frames)
         for i in range(nframes):
                 plt.figure(figsize=(10,10))
@@ -448,7 +450,9 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                         yc_cen = -(cen_y - tcen_y)
                         plt.plot(xc_cen,yc_cen,'wx',markersize=15,alpha=0.5)
                         #if data['data']['IDs'][idx_c]=='07455881-6152556':
-                        print(str(idx_c), data['data']['IDs'][idx_c]) 
+			if i==0:
+                        	f_compstar.write(str(idx_c)+' '+str( data['data']['IDs'][idx_c])+'\n')
+				print(str(idx_c), data['data']['IDs'][idx_c]) 
                         plt.text(xc_cen,yc_cen,str(idx_c))
                         circle3 = plt.Circle((xc_cen,yc_cen),aperture,color='white',fill=False)
                         plt.gca().add_artist(circle3)
@@ -462,6 +466,7 @@ def plot_full_image(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frame
                 if not os.path.exists(out_dir+'/'+object_name+'/'+frame_name.split('/')[-1]+'_FULL.png'):
                     plt.savefig(out_dir+'/'+object_name+'/'+frame_name.split('/')[-1]+'_FULL.png')
                 plt.close()
+	f_compstar.close()
 
 def plot_images(data,idx,idx_comparison,aperture,min_ap,max_ap,out_dir,frames,idx_frames,half_size = 100):
 	def plot_im(d,cen_x,cen_y,frame_name,object_name):
