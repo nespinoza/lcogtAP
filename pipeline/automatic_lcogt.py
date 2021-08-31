@@ -94,74 +94,74 @@ def read_setupfile():
            emailreceiver,astrometry,gfastrometry
 
 class Bimail:
-	def __init__(self,subject,recipients):
-                fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
-                             emailreceiver,astrometry,gfastrometry = read_setupfile()
-		self.subject = subject
-		self.recipients = recipients
-		self.htmlbody = ''
-		self.sender = emailsender 
-		self.senderpass = emailsender_pwd
-		self.attachments = []
+    def __init__(self,subject,recipients):
+        fpack_folder,astrometry_folder,sendemail,emailsender,emailsender_pwd,\
+                     emailreceiver,astrometry,gfastrometry = read_setupfile()
+        self.subject = subject
+        self.recipients = recipients
+        self.htmlbody = ''
+        self.sender = emailsender 
+        self.senderpass = emailsender_pwd
+        self.attachments = []
  
-	def send(self):
-		msg = MIMEMultipart('alternative')
-		msg['From']=self.sender
-		msg['Subject']=self.subject
-		msg['To'] = ", ".join(self.recipients) # to must be array of the form ['mailsender135@gmail.com']
-		msg.preamble = "preamble goes here"
-		#check if there are attachments if yes, add them
-		if self.attachments:
-			self.attach(msg)
-		#add html body after attachments
-		msg.attach(MIMEText(self.htmlbody, 'html'))
-		#send
-		s = smtplib.SMTP('smtp.gmail.com:587')
-		s.starttls()
-		s.login(self.sender,self.senderpass)
-		s.sendmail(self.sender, self.recipients, msg.as_string())
-		#test
-		print msg
-		s.quit()
-	
-	def htmladd(self, html):
-		self.htmlbody = self.htmlbody+'<p></p>'+html
+    def send(self):
+        msg = MIMEMultipart('alternative')
+        msg['From']=self.sender
+        msg['Subject']=self.subject
+        msg['To'] = ", ".join(self.recipients) # to must be array of the form ['mailsender135@gmail.com']
+        msg.preamble = "preamble goes here"
+        #check if there are attachments if yes, add them
+        if self.attachments:
+            self.attach(msg)
+        #add html body after attachments
+        msg.attach(MIMEText(self.htmlbody, 'html'))
+        #send
+        s = smtplib.SMTP('smtp.gmail.com:587')
+        s.starttls()
+        s.login(self.sender,self.senderpass)
+        s.sendmail(self.sender, self.recipients, msg.as_string())
+        #test
+        print msg
+        s.quit()
+    
+    def htmladd(self, html):
+        self.htmlbody = self.htmlbody+'<p></p>'+html
  
-	def attach(self,msg):
-                print self.attachments
-		for f in self.attachments:
-		
-			ctype, encoding = mimetypes.guess_type(f)
-			if ctype is None or encoding is not None:
-				ctype = "application/octet-stream"
-				
-			maintype, subtype = ctype.split("/", 1)
+    def attach(self,msg):
+        print self.attachments
+        for f in self.attachments:
+        
+            ctype, encoding = mimetypes.guess_type(f)
+            if ctype is None or encoding is not None:
+                ctype = "application/octet-stream"
+                
+            maintype, subtype = ctype.split("/", 1)
  
-			if maintype == "text":
-				fp = open(f)
-				# Note: we should handle calculating the charset
-				attachment = MIMEText(fp.read(), _subtype=subtype)
-				fp.close()
-			elif maintype == "image":
-				fp = open(f, "rb")
-				attachment = MIMEImage(fp.read(), _subtype=subtype)
-				fp.close()
-			elif maintype == "audio":
-				fp = open(f, "rb")
-				attachment = MIMEAudio(fp.read(), _subtype=subtype)
-				fp.close()
-			else:
-				fp = open(f, "rb")
-				attachment = MIMEBase(maintype, subtype)
-				attachment.set_payload(fp.read())
-				fp.close()
-				encoders.encode_base64(attachment)
-			attachment.add_header("Content-Disposition", "attachment", filename=f.split('/')[-1])
-			attachment.add_header('Content-ID', '<{0}>'.format(f.split('/')[-1]))
-			msg.attach(attachment)
-	
-	def addattach(self, files):
-		self.attachments = self.attachments + files
+            if maintype == "text":
+                fp = open(f)
+                # Note: we should handle calculating the charset
+                attachment = MIMEText(fp.read(), _subtype=subtype)
+                fp.close()
+            elif maintype == "image":
+                fp = open(f, "rb")
+                attachment = MIMEImage(fp.read(), _subtype=subtype)
+                fp.close()
+            elif maintype == "audio":
+                fp = open(f, "rb")
+                attachment = MIMEAudio(fp.read(), _subtype=subtype)
+                fp.close()
+            else:
+                fp = open(f, "rb")
+                attachment = MIMEBase(maintype, subtype)
+                attachment.set_payload(fp.read())
+                fp.close()
+                encoders.encode_base64(attachment)
+            attachment.add_header("Content-Disposition", "attachment", filename=f.split('/')[-1])
+            attachment.add_header('Content-ID', '<{0}>'.format(f.split('/')[-1]))
+            msg.attach(attachment)
+    
+    def addattach(self, files):
+        self.attachments = self.attachments + files
 
 def datesok(year,month):
     if year == 2016:
@@ -352,7 +352,9 @@ phot_radius = np.double(args.phot_radius)
 
 # Check for which project the user whishes to download data from:
 fprojects = open('../userdata.dat','r')
-while True:
+# initialize check
+project_exists = True
+while project_exists:
     line = fprojects.readline()
     if line != '':
         if line[0] != '#':
@@ -364,6 +366,7 @@ while True:
     else:
         print '\t > Project '+project+' is not on the list of saved projects. '
         print '\t   Please associate it on the userdata.dat file.'
+        project_exists = False
 
 data_folder = cf
 
@@ -443,7 +446,7 @@ for i in range(len(dates_raw)):
                     RA,DEC = get_general_coords(target_name,dates_raw[i])
                     if RA == 'NoneFound':
                         targetok = False
-                        print '\t RA and DEC obtention failed!'
+                        print '\t Simbad RA and DEC obtention failed!'
                     else:
                         targetok = True
             else:
@@ -464,22 +467,26 @@ for i in range(len(dates_raw)):
                 if RA == 'NoneFound':
                     targetok = False
                     emails_to_send = emailreceiver
+                    print '\t manual RA and DEC obtention failed!'
                 else:
                     targetok = True
                     emails_to_send = emailreceiver + extra_emails
+                    print '\t Found RA and DEC:',RA,DEC
                 if not targetok:
                     try:
                         RA,DEC = get_epic_coords(target_name)
                         RA = ':'.join(RA.split())
                         DEC = ':'.join(DEC.split())
                         print '\t Found RA and DEC:',RA,DEC
-                       targetok = True
+                        targetok = True
                     except:
                         RA,DEC = get_general_coords(target_name,dates_raw[i])
                         if RA == 'NoneFound':
                             targetok = False
+                            print '\t EPIC RA and DEC obtention failed!'
                         else:
                             targetok = True
+                            print '\t Found RA and DEC:',RA,DEC
             # Assuming RA an DEC have been retrieved, run the post-processing algorithm:
             if targetok:
               for ap in ['opt','10','15','20','30']:
@@ -498,7 +505,13 @@ for i in range(len(dates_raw)):
                 print code
                 p = subprocess.Popen(code,stdout = subprocess.PIPE, \
                            stderr = subprocess.PIPE,shell = True)
-                p.wait()
+                while True:
+                    output = p.stdout.readline()
+                    if output == '' and p.poll() is not None:
+                        break
+                    if output:
+                        print output.strip()
+                print p.poll()
                 out = glob.glob(data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/*')
                 for ii in range(len(out)):
                        if out[ii].split('/')[-1] == 'sinistro':

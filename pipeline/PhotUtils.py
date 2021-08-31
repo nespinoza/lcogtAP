@@ -201,13 +201,23 @@ def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y
         catalog = u'fp_psc',date='20180101'):
 
     print '\t > Generating master dictionary for coordinates',central_ra,central_dec,'...'
-    # Make query to 2MASS:
-    result = Irsa.query_region(coord.SkyCoord(central_ra,central_dec,unit=(u.deg,u.deg)),spatial = 'Cone',\
+    try:
+        # Make query to 2MASS:
+        result = Irsa.query_region(coord.SkyCoord(central_ra,central_dec,unit=(u.deg,u.deg)),spatial = 'Cone',\
                                radius=central_radius*3600.*u.arcsec,catalog=catalog)
-
-    # Query to PPMXL to get proper motions:
-    resultppm = Irsa.query_region(coord.SkyCoord(central_ra,central_dec,unit=(u.deg,u.deg)),spatial = 'Cone',\
+        # Query to PPMXL to get proper motions:
+        resultppm = Irsa.query_region(coord.SkyCoord(central_ra,central_dec,unit=(u.deg,u.deg)),spatial = 'Cone',\
                                radius=central_radius*3600.*u.arcsec,catalog='ppmxl')
+    except:
+        # If query with inf limit fails, reset to 1000
+        Irsa.ROW_LIMIT = 1000
+        # Make query to 2MASS:
+        result = Irsa.query_region(coord.SkyCoord(central_ra,central_dec,unit=(u.deg,u.deg)),spatial = 'Cone',\
+                               radius=central_radius*3600.*u.arcsec,catalog=catalog)
+        # Query to PPMXL to get proper motions:
+        resultppm = Irsa.query_region(coord.SkyCoord(central_ra,central_dec,unit=(u.deg,u.deg)),spatial = 'Cone',\
+                               radius=central_radius*3600.*u.arcsec,catalog='ppmxl')
+
 
     # Get RAs, DECs, and PMs from this last catalog:
     rappmxl = np.array(resultppm['ra'].data.data.tolist())
@@ -421,6 +431,7 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
        #print f
        # Decompress file. Necessary because Astrometry cant handle this:
        if f[-7:] == 'fits.fz':
+          print fpack_folder+'funpack '+f
           p = subprocess.Popen(fpack_folder+'funpack '+f, stdout = subprocess.PIPE, \
                                 stderr = subprocess.PIPE, shell = True)
           p.wait()
