@@ -2,7 +2,7 @@
 import numpy as np
 import subprocess
 import urllib
-import pyfits
+from astropy.io import fits as pyfits
 import jdcal
 import shutil
 import glob
@@ -121,14 +121,14 @@ class Bimail:
         s.login(self.sender,self.senderpass)
         s.sendmail(self.sender, self.recipients, msg.as_string())
         #test
-        print msg
+        print(msg)
         s.quit()
     
     def htmladd(self, html):
         self.htmlbody = self.htmlbody+'<p></p>'+html
  
     def attach(self,msg):
-        print self.attachments
+        print(self.attachments)
         for f in self.attachments:
         
             ctype, encoding = mimetypes.guess_type(f)
@@ -260,7 +260,9 @@ def get_general_coords(target,date):
     """
     try:
         url = "http://simbad.u-strasbg.fr/simbad/sim-id?Ident="+target+"&NbIdent=1&Radius=2&Radius.unit=arcmin&submit=submit+id"
-        html = urllib.urlopen(url).read()
+        with urllib.request.urlopen(url) as curl:
+            bhtml = curl.read()
+        html = bhtml.decode("utf-8")
         splt = html.split('ICRS')
         spltpp = html.split('Proper motions')
         rahh,ramm,rass,decdd,decmm,decss = (splt[1].split('<TT>\n')[1].split('\n')[0]).split()
@@ -284,7 +286,7 @@ def get_general_coords(target,date):
             data_jd = sum(jdcal.gcal2jd(dt.year, dt.month, dt.day))
             deltat = (data_jd-2451544.5)/365.25
             # Calculate total PM:
-            print dec
+            print(dec)
             pmra = np.double(pmra)*deltat/15. # Conversion from arcsec to sec
             pmdec = np.double(pmdec)*deltat
             # Correct proper motion:
@@ -364,8 +366,8 @@ while project_exists:
             if project.lower() == cp.lower():
                 break
     else:
-        print '\t > Project '+project+' is not on the list of saved projects. '
-        print '\t   Please associate it on the userdata.dat file.'
+        print('\t > Project '+project+' is not on the list of saved projects. ')
+        print('\t   Please associate it on the userdata.dat file.')
         project_exists = False
 
 data_folder = cf
@@ -389,6 +391,7 @@ for i in range(len(folders_red)):
 today_jd = sum(jdcal.gcal2jd(str(datetime.today().year), str(datetime.today().month), str(datetime.today().day)))
 for i in range(len(dates_raw)):
     first_HS_login = True
+
     year = int(dates_raw[i][:4])
     month = int(dates_raw[i][4:6])
     day = int(dates_raw[i][6:8])
@@ -405,7 +408,7 @@ for i in range(len(dates_raw)):
             if os.path.exists(tar_dir+'/sinistro'):
                 before_target_folders.append(tar_dir)
         # Reduce the data (if already reduced, nothing will happen):
-        print '>> Reducing data for '+dates_raw[i]+' night. Reducing...'
+        print('>> Reducing data for '+dates_raw[i]+' night. Reducing...')
         optional_options = ''
         if astrometry:
             optional_options = ' --get_astrometry'
@@ -423,7 +426,7 @@ for i in range(len(dates_raw)):
           # Post-process the target only if it has already not been done:
           if target_folder not in before_target_folders:
             target = target_folder.split('/')[-1]
-            print 'Post-processing target '+target+' on folder '+target_folder
+            print('Post-processing target '+target+' on folder '+target_folder)
             # If it is a HATS target, query to canditrack, get RA and DEC, and run the 
             # post-processing algorithm. If not, assume it is a K2 object whose EPIC
             # number is in 'target' (e.g., target = '214323253242-ip'). In that case, 
@@ -440,16 +443,17 @@ for i in range(len(dates_raw)):
                     first_HS_login = False
                 try:
                     RA,DEC = get_hs_coords(s,target_name)
-                    print '\t Found RA and DEC:',RA,DEC
+                    print('\t Found RA and DEC:',RA,DEC)
                     targetok = True
                 except:
                     RA,DEC = get_general_coords(target_name,dates_raw[i])
                     if RA == 'NoneFound':
                         targetok = False
-                        print '\t Simbad RA and DEC obtention failed!'
+                        print('\t Simbad RA and DEC obtention failed!')
                     else:
                         targetok = True
             else:
+                print('target::::',target)
                 if 'Inter-American' in target:
                     splitted_name = target.split('-')
                     n2 = splitted_name[-1]
@@ -467,26 +471,26 @@ for i in range(len(dates_raw)):
                 if RA == 'NoneFound':
                     targetok = False
                     emails_to_send = emailreceiver
-                    print '\t manual RA and DEC obtention failed!'
+                    print('\t manual RA and DEC obtention failed!')
                 else:
                     targetok = True
                     emails_to_send = emailreceiver + extra_emails
-                    print '\t Found RA and DEC:',RA,DEC
+                    print('\t Found RA and DEC:',RA,DEC)
                 if not targetok:
                     try:
                         RA,DEC = get_epic_coords(target_name)
                         RA = ':'.join(RA.split())
                         DEC = ':'.join(DEC.split())
-                        print '\t Found RA and DEC:',RA,DEC
+                        print('\t Found RA and DEC:',RA,DEC)
                         targetok = True
                     except:
                         RA,DEC = get_general_coords(target_name,dates_raw[i])
                         if RA == 'NoneFound':
                             targetok = False
-                            print '\t EPIC RA and DEC obtention failed!'
+                            print('\t EPIC RA and DEC obtention failed!')
                         else:
                             targetok = True
-                            print '\t Found RA and DEC:',RA,DEC
+                            print('\t Found RA and DEC:',RA,DEC)
             # Assuming RA an DEC have been retrieved, run the post-processing algorithm:
             if targetok:
               for ap in ['opt','10','15','20','30']:
@@ -502,7 +506,7 @@ for i in range(len(dates_raw)):
                     code = 'python transit_photometry.py -project '+project+' -datafolder '+\
                            dates_raw[i]+' -target_name "'+target_name+'" -band '+band+\
                            ' -dome '+dome+' -ra "'+RA+'" -dec " '+DEC+'" -ncomp 10 -phot_radius '+str(phot_radius)+' --plt_images --force_aperture -forced_aperture '+ap+' --autosaveLC'
-                print code
+                print(code)
                 p = subprocess.Popen(code,stdout = subprocess.PIPE, \
                            stderr = subprocess.PIPE,shell = True)
                 while True:
@@ -510,8 +514,8 @@ for i in range(len(dates_raw)):
                     if output == '' and p.poll() is not None:
                         break
                     if output:
-                        print output.strip()
-                print p.poll()
+                        print(output.strip())
+                print(p.poll())
                 out = glob.glob(data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/*')
                 for ii in range(len(out)):
                        if out[ii].split('/')[-1] == 'sinistro':
@@ -525,10 +529,10 @@ for i in range(len(dates_raw)):
                 shutil.move(out_folder,out_folder+'_'+ap)
                 if sendemail:
                     if(p.returncode != 0 and p.returncode != None):
-                        print 'Error sending mail:'
+                        print('Error sending mail:')
                         out, err = p.communicate()
-                        print spaced(err,"\t \t")
-                    print 'Sending e-mail...' 
+                        print(spaced(err,"\t \t"))
+                    print('Sending e-mail...') 
                     mymail = Bimail('LCOGT DR (project: '+project+'): '+target_name+' on ' +dates_raw[i]+' Aperture: '+ap, emails_to_send)
                     mymail.htmladd('Data reduction was a SUCCESS! Attached is the lightcurve data.')
                     out_folder = out_folder+'_'+ap
@@ -559,8 +563,14 @@ for i in range(len(dates_raw)):
                     mymail.send()
               shutil.move(out_folder[:-3]+'_opt',data_folder+'LCOGT/red/'+dates_raw[i]+'/'+target+'/sinistro')
             else:
-                mymail = Bimail('LCOGT DR (project: '+project+'): '+target_name+' on ' +datetime.now().strftime('%Y/%m/%d'), emails_to_send)
-                mymail.htmladd('Post-processing failed for object '+target+' on '+dates_raw[i])
-                mymail.send()
+
+                if sendemail:
+
+                    mymail = Bimail('LCOGT DR (project: '+project+'): '+target_name+' on ' +datetime.now().strftime('%Y/%m/%d'), emails_to_send)
+                    mymail.htmladd('Post-processing failed for object '+target+' on '+dates_raw[i])
+                    mymail.send()
+
+                print('Post-processing failed for object'+target+'on'+dates_raw[i])
+
         # Get back to photometric pipeline directory:
         os.chdir(cwd) 

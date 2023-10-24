@@ -1,4 +1,4 @@
-import pyfits
+from astropy.io import fits as pyfits
 import time as clocking_time
 import dateutil
 import glob
@@ -7,6 +7,7 @@ import subprocess
 import sys
 import numpy as np
 import matplotlib
+import six
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
 import matplotlib.dates as mdates
@@ -24,7 +25,8 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 
 # For aperture photometry:
-import multiprocessing as mp
+#import multiprocessing as mp
+import ray
 from scipy.ndimage.filters import gaussian_filter
 
 # Ignore computation errors:
@@ -119,15 +121,15 @@ def TrimLim(s):
     return int(min_col),int(max_col),int(min_row),int(max_row)
 
 def site_data_2_string(sitelong,sitelat,sitealt):
-    if not isinstance(sitelong,basestring):
+    if not isinstance(sitelong,six.string_types):
         longitude = str(int(modf(360.-sitelong)[1]))+':'+str(modf(360.-sitelong)[0]*60.)
     else:
         longitude = sitelong
-    if not isinstance(sitelat,basestring):
+    if not isinstance(sitelat,six.string_types):
         latitude = str(int(modf(sitelat)[1]))+':'+str(-modf(sitelat)[0]*60.)
     else:
         latitude = sitelat
-    if not isinstance(sitealt,basestring):
+    if not isinstance(sitealt,six.string_types):
         return longitude,latitude,str(sitealt)
     else:
         return longitude,latitude,sitealt
@@ -184,13 +186,13 @@ def get_planet_data(planet_data,target_object_name):
             break
         elif line[0] != '#':
             name,ra,dec = line.split()
-            print name,ra,dec
+            print(name,ra,dec)
             if target_object_name == name:
                 f.close()
                 return [[ra,dec]]
     f.close()
-    print 'Planet '+target_object_name+' not found in file '+planet_data
-    print 'Add it to the list and try running the code again.'
+    print('Planet '+target_object_name+' not found in file '+planet_data)
+    print('Add it to the list and try running the code again.')
     sys.exit()
 
 from astroquery.irsa import Irsa
@@ -200,7 +202,7 @@ import astropy.units as u
 def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y_max, R,\
         catalog = u'fp_psc',date='20180101'):
 
-    print '\t > Generating master dictionary for coordinates',central_ra,central_dec,'...'
+    print('\t > Generating master dictionary for coordinates',central_ra,central_dec,'...')
     try:
         # Make query to 2MASS:
         result = Irsa.query_region(coord.SkyCoord(central_ra,central_dec,unit=(u.deg,u.deg)),spatial = 'Cone',\
@@ -244,7 +246,7 @@ def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y
     dt = dateutil.parser.parse(s)
     data_jd = sum(jdcal.gcal2jd(dt.year, dt.month, dt.day))
     deltat = (data_jd-2451544.5)/365.25
-    print '\t Correcting PPM for date '+date+', deltat: ',deltat,'...'
+    print('\t Correcting PPM for date '+date+', deltat: ',deltat,'...')
     for i in range(len(all_ra)):
         c_ra = all_ra[i]
         c_dec = all_dec[i]
@@ -259,7 +261,7 @@ def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y
             all_dec[i] = all_dec[i] + deltat*decppm[min_idx]
             #if dist_hats < 3./3600.:
             #    print 'New RA DEC:',all_ra[i],all_dec[i]
-    print '\t Done.'
+    print('\t Done.')
 
     # Check which ras and decs have valid coordinates inside the first image. 
     # Save only those as valid objects for photometry:
@@ -320,7 +322,7 @@ def get_dict(central_ra,central_dec,central_radius, ra_obj, dec_obj, h, x_max, y
             master_dict['data'][all_names[i]]['fluxes_'+str(r)+'_pix_ap'] = np.array([])
             master_dict['data'][all_names[i]]['fluxes_'+str(r)+'_pix_ap_err'] = np.array([])
 
-    print ('\t > Extracting data for '+str(len(all_names))+' sources')
+    print('\t > Extracting data for '+str(len(all_names))+' sources')
     return master_dict,all_names
 
 from astropy.io import fits
@@ -421,8 +423,8 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
         times_method = 2
 
     else:
-	print 'ERROR: the selected observatory '+observatory+' is not supported.'
-	sys.exit()
+        print('ERROR: the selected observatory '+observatory+' is not supported.')
+        sys.exit()
 
     # Iterate through the files:
     first_time = True
@@ -431,15 +433,15 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
        #print f
        # Decompress file. Necessary because Astrometry cant handle this:
        if f[-7:] == 'fits.fz':
-          print fpack_folder+'funpack '+f
+          print(fpack_folder+'funpack '+f)
           p = subprocess.Popen(fpack_folder+'funpack '+f, stdout = subprocess.PIPE, \
                                 stderr = subprocess.PIPE, shell = True)
           p.wait()
           if(p.returncode != 0 and p.returncode != None):
-             print ('\t Funpack command failed. The error was:')
+             print('\t Funpack command failed. The error was:')
              out, err = p.communicate()
-             print (err)
-             print ('\n\t Exiting...\n')
+             print(err)
+             print('\n\t Exiting...\n')
              sys.exit()
           f = f[:-3]
        try:
@@ -463,23 +465,23 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
                             filter_ok = True
     
             if filter_ok:
-                    print ('\t Working on frame '+f)
+                    print('\t Working on frame '+f)
 
                     ########## OBTAINING THE ASTROMETRY ###############
                     # First, run astrometry on the current frame if not ran already:
                     filename = f.split('.fits')[0]
                     if not os.path.exists(filename+'.new') and get_astrometry:
-                            print ('\t Running astrometry on frame '+f+'...')
+                            print('\t Running astrometry on frame '+f+'...')
                             run_astrometry(f,ra = ra_obj[0], dec = dec_obj[0], radius = 0.15,\
                                            scale_low = t_scale_low,scale_high = t_scale_high, \
                                            apply_gaussian_filter = gf_opt)
-                            print ('\t ...done!')
+                            print('\t ...done!')
 
                     # Now get data if astrometry worked or if no astrometry was needed on the frame:
                     if os.path.exists(filename+'.new') or not get_astrometry:
                             # If get_astrometry flag is on, prefer the generated file instead of the original:
                             if get_astrometry:
-                                print '\t Detected file '+filename+'.new'+'. Using it...'
+                                print('\t Detected file '+filename+'.new'+'. Using it...')
                                 hdulist = fits.open(filename+'.new')
                             else:
                                 hdulist = fits.open(filename+'.fits')
@@ -552,11 +554,13 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
                             except:
                                 coords = SkyCoord(h['RA'],h['DEC'], unit='deg')
 
+                            ltt_bary = t.light_travel_time(coords)
+                            t_bary = t.tdb + ltt_bary
                             # Save UTC, exposure, JD and BJD and LS times. Save also the airmass:
                             master_dict['UTC_times'] = np.append(master_dict['UTC_times'],utc_time)
                             master_dict['exptimes'] = np.append(master_dict['exptimes'],h[exptime_h_name])
                             master_dict['JD_times'] = np.append(master_dict['JD_times'],t.jd)
-                            master_dict['BJD_times'] = np.append(master_dict['BJD_times'],((t.bcor(coords)).jd))
+                            master_dict['BJD_times'] = np.append(master_dict['BJD_times'],t_bary.jd)
                             if lst_h_name is not None:
                                master_dict['LST'] = np.append(master_dict['LST'],h[lst_h_name])
                             else:
@@ -579,7 +583,7 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
                             #master_dict['data']['RA_degs'][223],master_dict['data']['DEC_degs'][223] = 19.4620208,0.3419944
                             x,y = SkyToPix(h,master_dict['data']['RA_degs'],master_dict['data']['DEC_degs'])
                             # Get fluxes of all the targets in the image for different apertures:
-                            print ('\t Performing aperture photometry on objects...')
+                            print('\t Performing aperture photometry on objects...')
                             tic = clocking_time.time()
                             if type(egain) == type('str'):
                                fluxes,errors,x_ref,y_ref,bkg,bkg_err,fwhm = getAperturePhotometry(data,h,x,y,R,\
@@ -593,7 +597,7 @@ def getPhotometry(filenames,observatory,R,ra_obj,dec_obj,out_data_folder,use_fil
                             #print 'Centroids, before:',x[71],y[71]
                             #print 'Centroids, after :',x_ref[71],y_ref[71]
                             toc = clocking_time.time()
-                            print ('\t Took '+str(toc-tic)+' seconds.')
+                            print('\t Took '+str(toc-tic)+' seconds.')
                             # Save everything in the dictionary:
                             for i in range(len(all_names)):
                                     master_dict['data'][all_names[i]]['centroids_x'] = \
@@ -626,7 +630,7 @@ def organize_files(files,obj_name,filt,leaveout=''):
         try:
             d,h = pyfits.getdata(files[i],header=True)
         except:
-            print 'File '+files[i]+' probably corrupt. Skipping it'
+            print('File '+files[i]+' probably corrupt. Skipping it')
             if i+1 == len(files):
                 break
             i = i + 1
@@ -646,35 +650,44 @@ def organize_files(files,obj_name,filt,leaveout=''):
         elif h['EXPTYPE'] == 'Bias':
                 unique_objects.append('Bias')#h['OBJECT'])
 
-    print '\t We found the following frames:'
+    print('\t We found the following frames:')
     for i in range(len(unique_objects)):
         counter = 0
         for obj in all_objects:
                 if obj == unique_objects[i]:
                         counter = counter + 1
-        print '\t   ('+str(i)+') '+unique_objects[i]+' ('+str(counter)+' frames)'
+        print('\t   ('+str(i)+') '+unique_objects[i]+' ('+str(counter)+' frames)')
 
-    print '\t Which ones are the (separate your selection with commas, e.g., 0,3,4)...'
+    print('\t Which ones are the (separate your selection with commas, e.g., 0,3,4)...')
     idx_biases = [int(i) for i in raw_input('\t ...biases?').split(',')]
     idx_dome_flats = [int(i) for i in raw_input('\t ...dome flats?').split(',')]
     idx_sky_flats = [int(i) for i in raw_input('\t ...sky flats?').split(',')]
     idx_science = [int(i) for i in raw_input('\t ...science frames?').split(',')]
 
     for i in range(len(files)):
+
         for j in range(len(unique_objects)):
+
             if unique_objects[j] == all_objects[i]:
-		if leaveout != '':
-			im_name = files[i].split(leaveout)[0]
-		else:
-			im_name = files[i]
+
+                if leaveout != '':
+
+                    im_name = files[i].split(leaveout)[0]
+
+                else:
+
+                    im_name = files[i]
+
                 if j in idx_biases:
-                        bias.append(im_name)
+
+                    bias.append(im_name)
+
                 elif j in idx_dome_flats:
                         dome_flats.append(im_name)
                 elif j in idx_sky_flats:
                         sky_flats.append(im_name)
                 elif j in idx_science:
-			objects.append(im_name)
+                        objects.append(im_name)
                 
     return bias,dome_flats,sky_flats,objects
 
@@ -761,16 +774,19 @@ def run_astrometry(filename,ra = None, dec = None, radius = None, scale_low = 0.
 
     p.wait()
     if(p.returncode != 0 and p.returncode != None):
-        print ('\t ASTROMETRY FAILED. The error was:')
+
+        print('\t ASTROMETRY FAILED. The error was:')
         out, err = p.communicate()
-        print (err)
-        print ('\n\t Exiting...\n')
+        print(err)
+        print('\n\t Exiting...\n')
         sys.exit()
+
     else:
+
         if apply_gaussian_filter and os.path.exists(filename.split('.fits')[0]+'.new') and os.path.exists(filename):
-	   d,h = pyfits.getdata(filename,header=True)
-           dnew,hnew = pyfits.getdata(filename.split('.fits')[0]+'.new',header=True)
-           pyfits.writeto(true_filename.split('.fits')[0]+'.new',pyfits.getdata(true_filename),header=hnew)
+            d,h = pyfits.getdata(filename,header=True)
+            dnew,hnew = pyfits.getdata(filename.split('.fits')[0]+'.new',header=True)
+            pyfits.writeto(true_filename.split('.fits')[0]+'.new',pyfits.getdata(true_filename),header=hnew)
 
 from astropy import wcs
 def SkyToPix(h,ras,decs):
@@ -816,9 +832,6 @@ sigma_gf = 5.*fwhm_factor # 5.
 def getAperturePhotometry(d,h,x,y,R,target_names, frame_name = None, out_dir = None, saveplot = False, \
         refine_centroids = False, half_size = 50, GAIN = 1.0, ncores = None):
 
-
-    global global_d,global_h,global_x,global_y,global_R,global_target_names,global_frame_name,\
-              global_out_dir,global_saveplot,global_refine_centroids,global_half_size,global_GAIN
     global_d = d
     global_h = h
     global_x = x
@@ -841,17 +854,41 @@ def getAperturePhotometry(d,h,x,y,R,target_names, frame_name = None, out_dir = N
     fwhm = np.zeros(len(x))
 
     if ncores is None:
-    	pool = mp.Pool(processes=4)
-    else:
-	pool = mp.Pool(processes=ncores)
-    results = pool.map(getCentroidsAndFluxes, range(len(x)))
-    pool.terminate()
 
+        ncores = 4
+
+    if not ray.is_initialized():
+
+        ray.init(address='local', num_cpus = ncores)
+
+    # Remote-ize the function:
+    ray_getCentroidsAndFluxes = ray.remote( getCentroidsAndFluxes )
+
+    # Set ray processes:
+    all_processes = []
     for i in range(len(x)):
-        fluxes[i,:],fluxes_err[i,:],x_ref[i],y_ref[i],bkg[i],bkg_err[i],fwhm[i] = results[i]
+
+        all_processes.append( ray_getCentroidsAndFluxes.remote(i, global_d,global_h,global_x,global_y,global_R,
+                              global_target_names,global_frame_name, global_out_dir,global_saveplot,global_refine_centroids,
+                              global_half_size,global_GAIN) 
+                            )
+
+    # Run processes with ray:
+    all_results = ray.get(all_processes)
+
+    # Save results:
+    for i in range(len(x)):
+
+        fluxes[i,:],fluxes_err[i,:],x_ref[i],y_ref[i],bkg[i],bkg_err[i],fwhm[i] = all_results[i]
+
+    if ray.is_initialized():
+
+        ray.shutdown() 
+
     return fluxes,fluxes_err,x_ref,y_ref,bkg,bkg_err,fwhm
 
-def getCentroidsAndFluxes(i):
+def getCentroidsAndFluxes(i, global_d,global_h,global_x,global_y,global_R,global_target_names,global_frame_name, global_out_dir,global_saveplot,global_refine_centroids,global_half_size,global_GAIN):
+
        fluxes_R = np.ones(len(global_R))*(-1)
        fluxes_err_R = np.ones(len(global_R))*(-1)
        #print fluxes_R
@@ -864,7 +901,7 @@ def getCentroidsAndFluxes(i):
            x1 = np.min([int(global_x[i])+global_half_size,global_d.shape[1]])
            y0 = np.max([0,int(global_y[i])-global_half_size])
            y1 = np.min([int(global_y[i])+global_half_size,global_d.shape[0]])
-           subimg = np.float64(np.copy(global_d[y0:y1,x0:x1]))
+           subimg = np.copy(global_d[y0:y1,x0:x1]).astype('float')
 
            # Substract the (background) median counts, get estimate 
            # of the sky std dev:
@@ -941,8 +978,8 @@ def estimate_fwhm(data,x0,y0):
         else:
             return 0
          
-    sigma_y = get_second_moment(np.arange(data.shape[1]),data[np.int(y0),:],x0)
-    sigma_x = get_second_moment(np.arange(data.shape[0]),data[:,np.int(x0)],y0)
+    sigma_y = get_second_moment(np.arange(data.shape[1]),data[int(y0),:],x0)
+    sigma_x = get_second_moment(np.arange(data.shape[0]),data[:,int(x0)],y0)
     if sigma_y == 0.0:
        sigma = sigma_x
     if sigma_x == 0.0:
@@ -965,14 +1002,14 @@ def CoordsToDecimal(coords):
                 # Get hour, minutes and secs from RA string:
                 hh,mm,ss = ra_string.split(':')
                 # Convert to decimal:
-                ra_decimal = np.float(hh) + (np.float(mm)/60.) + \
-                                (np.float(ss)/3600.0)
+                ra_decimal = float(hh) + (float(mm)/60.) + \
+                                (float(ss)/3600.0)
                 # Convert to degrees:
                 ras = np.append(ras,ra_decimal * (360./24.))
                 # Now same thing for DEC:
                 dd,mm,ss = dec_string.split(':')
-                dec_decimal = np.abs(np.float(dd)) + (np.float(mm)/60.) + \
-                                (np.float(ss)/3600.0)
+                dec_decimal = np.abs(float(dd)) + (float(mm)/60.) + \
+                                (float(ss)/3600.0)
                 if dd[0] == '-':
                         decs = np.append(decs,-1*dec_decimal)
                 else:
@@ -1014,6 +1051,7 @@ def SuperComparison(fluxes,errors):
         err_flux = np.sqrt(np.sum(errors**2)/np.double(len(fluxes)))
         return flux,err_flux
 
+from astropy.time import Time
 from astropy import time
 from astropy import constants as const
 from astropy import units as u
@@ -1022,7 +1060,8 @@ from astropy.utils.iers import IERS_A, IERS_A_URL
 from astropy.utils.data import download_file
 from astropy.io import ascii
 from astropy import coordinates as coord
-from astropy import _erfa as erfa
+import erfa
+#from astropy import _erfa as erfa
 import numpy as np
 import warnings
 
@@ -1031,7 +1070,7 @@ SR = 7.292115855306589e-5
 
 ''' time class: inherits astropy time object, and adds heliocentric, barycentric
     correction utilities.'''
-class Time(time.Time):
+class oldTime(time.Time):
 
     def __init__(self,*args,**kwargs):
         super(Time, self).__init__(*args, **kwargs)
@@ -1082,8 +1121,8 @@ class Time(time.Time):
         X,Y,S = erfa.xys00a(tt.jd1,tt.jd2)
 
         # Get dX and dY from IERS B
-        dX = np.interp(mjd, iers_tab['MJD'], iers_tab['dX_2000A']) * u.arcsec 
-        dY = np.interp(mjd, iers_tab['MJD'], iers_tab['dY_2000A']) * u.arcsec
+        dX = np.interp(mjd, iers_tab['MJD'].value, iers_tab['dX_2000A'].value) * u.arcsec 
+        dY = np.interp(mjd, iers_tab['MJD'].value, iers_tab['dY_2000A'].value) * u.arcsec
 
         # Get GCRS to CIRS matrix
         # can be used to convert to Celestial Intermediate Ref Sys
@@ -1097,8 +1136,8 @@ class Time(time.Time):
 
         # Get X and Y from IERS B
         # X and Y are
-        xp = np.interp(mjd, iers_tab['MJD'], iers_tab['PM_x']) * u.arcsec
-        yp = np.interp(mjd, iers_tab['MJD'], iers_tab['PM_y']) * u.arcsec 
+        xp = np.interp(mjd, iers_tab['MJD'].value, iers_tab['PM_x'].value) * u.arcsec
+        yp = np.interp(mjd, iers_tab['MJD'].value, iers_tab['PM_y'].value) * u.arcsec 
 
         # Get the polar motion matrix. Relates ITRF to TIRS.
         rpm = erfa.pom00(xp.to(u.rad).value, yp.to(u.rad).value, sp)
@@ -1141,6 +1180,10 @@ class Time(time.Time):
         # get heliocentric and barycentric position and velocity of Earth
         # BCRS reference frame
         h_pv,b_pv = erfa.epv00(tdb.jd1,tdb.jd2)
+
+        # Conver to np arrays:
+        h_pv = np.array(h_pv.tolist())
+        b_pv = np.array(b_pv.tolist())
 
         # h_pv etc can be shape (ntimes,2,3) or (2,3) if given a scalar time
         if h_pv.ndim == 2:

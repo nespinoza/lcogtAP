@@ -21,6 +21,7 @@ This code makes use of the following python libraries:
     + matplotlib.
     + jdcal.
     + ephem.
+    + ray.
 
 All of them are open source and can be easily installed in any machine. 
 

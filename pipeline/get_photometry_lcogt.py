@@ -2,7 +2,7 @@
 import PhotUtils
 import argparse
 import pickle
-import pyfits
+from astropy.io import fits as pyfits
 import glob
 import sys
 import os
@@ -70,8 +70,8 @@ while project_exists:
             if project.lower() == cp.lower():
                 break
     else:
-        print '\t > Project '+project+' is not on the list of saved projects. '
-        print '\t   Please associate it on the userdata.dat file.'
+        print('\t > Project '+project+' is not on the list of saved projects. ')
+        print('\t   Please associate it on the userdata.dat file.')
         project_exists = False
 
 out_raw_folder = cf + 'LCOGT/raw'
@@ -134,12 +134,12 @@ for i in range(len(files)):
                os.mkdir(out_folder)
       good_objects.append(i)
     except:
-        print 'File ',f,' is corrupted. Skipping it'
+        print('File ',f,' is corrupted. Skipping it')
 files = [ files[i] for i in good_objects ]
 object_in_files = [ object_in_files[i] for i in good_objects ]
 
-print '\t Found ',len(all_objects),' object(s) for the observations under '+datafolder
-print '\t They are:',all_objects
+print('\t Found ',len(all_objects),' object(s) for the observations under '+datafolder)
+print('\t They are:',all_objects)
 
 print ('\t ###################################')
 print ('\t Going to photometric extraction....')
@@ -147,12 +147,11 @@ print ('\t ###################################')
 
 # Create apertures:
 R = np.arange(min_aperture,max_aperture+1,aperture_step)
-
 # Get photometry for the objects:
 for i in range(len(all_objects)):
-	obj_name = all_objects[i]
-	print '\t Working on '+obj_name
-	out_data_folder = out_red_folder+'/'+datafolder+'/'+obj_name+'/'
+        obj_name = all_objects[i]
+        print('\t Working on '+obj_name)
+        out_data_folder = out_red_folder+'/'+datafolder+'/'+obj_name+'/'
         all_files = []
         for j in range(len(files)):
             if obj_name == object_in_files[j]:
@@ -162,7 +161,7 @@ for i in range(len(all_objects)):
         if not os.path.exists(out_data_folder+'photometry.pkl'):
            master_dict = None
         else:
-           master_dict = pickle.load(open(out_data_folder+'photometry.pkl','r'))
+           master_dict = pickle.load(open(out_data_folder+'photometry.pkl','rb'))
 
         # Get master dictionary for photometry:
         if 'Inter-American' in obj_name:
@@ -176,6 +175,6 @@ for i in range(len(all_objects)):
 
         # Save dictionary:
         print ('\t Saving photometry at '+out_data_folder+'...')
-        OUT_FILE = open(out_data_folder+'photometry.pkl','w')
+        OUT_FILE = open(out_data_folder+'photometry.pkl','wb')
         pickle.dump(master_dict,OUT_FILE)
         OUT_FILE.close() 
